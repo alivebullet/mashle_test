@@ -462,7 +462,7 @@ mkCorner(remoteTabBtn, 4)
 
 -- ===== Status Label =====
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size               = UDim2.new(1, -170, 0, 18)
+statusLabel.Size               = UDim2.new(1, -276, 0, 18)
 statusLabel.Position           = UDim2.new(0, 8, 0, 62)
 statusLabel.BackgroundTransparency = 1
 statusLabel.Text               = "Detected: 0  | Filtered: 0"
@@ -473,8 +473,8 @@ statusLabel.TextSize           = 11
 statusLabel.Parent             = mainFrame
 
 local openPausedRemotesBtn = Instance.new("TextButton")
-openPausedRemotesBtn.Size = UDim2.new(0, 152, 0, 18)
-openPausedRemotesBtn.Position = UDim2.new(1, -160, 0, 62)
+openPausedRemotesBtn.Size = UDim2.new(0, 142, 0, 18)
+openPausedRemotesBtn.Position = UDim2.new(1, -150, 0, 62)
 openPausedRemotesBtn.BackgroundColor3 = Color3.fromRGB(42, 74, 120)
 openPausedRemotesBtn.Text = "Open Paused Remotes"
 openPausedRemotesBtn.TextColor3 = Theme.TextPrimary
@@ -597,28 +597,30 @@ local copyCodeBtn, copyPathBtn, runCodeBtn, clearRemBtn = actionBtns[1], actionB
 
 -- Export logs button for remotes
 local exportRemotesBtn = Instance.new("TextButton")
-exportRemotesBtn.Size = UDim2.new(0, 60, 0, 22)
-exportRemotesBtn.Position = UDim2.new(1, -70, 0, -30)
+exportRemotesBtn.Size = UDim2.new(0, 58, 0, 18)
+exportRemotesBtn.Position = UDim2.new(1, -212, 0, 62)
 exportRemotesBtn.BackgroundColor3 = Theme.ButtonDefault
 exportRemotesBtn.Text = "📤 Export"
 exportRemotesBtn.TextColor3 = Theme.TextPrimary
 exportRemotesBtn.Font = Enum.Font.Gotham
 exportRemotesBtn.TextSize = 10
 exportRemotesBtn.BorderSizePixel = 0
-exportRemotesBtn.Parent = remoteActionBar
+exportRemotesBtn.Visible = false
+exportRemotesBtn.Parent = mainFrame
 mkCorner(exportRemotesBtn, 4)
 
 -- Filter by local player toggle
 local localPlayerFilterBtn = Instance.new("TextButton")
-localPlayerFilterBtn.Size = UDim2.new(0, 70, 0, 22)
-localPlayerFilterBtn.Position = UDim2.new(0.5, -35, 0, -30)
+localPlayerFilterBtn.Size = UDim2.new(0, 52, 0, 18)
+localPlayerFilterBtn.Position = UDim2.new(1, -268, 0, 62)
 localPlayerFilterBtn.BackgroundColor3 = Theme.ButtonDefault
-localPlayerFilterBtn.Text = "👤 All"
+localPlayerFilterBtn.Text = "All"
 localPlayerFilterBtn.TextColor3 = Theme.TextPrimary
 localPlayerFilterBtn.Font = Enum.Font.Gotham
 localPlayerFilterBtn.TextSize = 10
 localPlayerFilterBtn.BorderSizePixel = 0
-localPlayerFilterBtn.Parent = remoteActionBar
+localPlayerFilterBtn.Visible = false
+localPlayerFilterBtn.Parent = mainFrame
 mkCorner(localPlayerFilterBtn, 4)
 
 -- ===== Resize grip (main) =====
@@ -675,6 +677,8 @@ local function setTab(tab)
 		animContent.Visible    = true
 		remoteContent.Visible  = false
 		openPausedRemotesBtn.Visible = false
+		exportRemotesBtn.Visible = false
+		localPlayerFilterBtn.Visible = false
 		animTabBtn.BackgroundColor3   = Theme.TabActive
 		animTabBtn.TextColor3         = Theme.TabTextActive
 		animTabBtn.Font               = Enum.Font.GothamBold
@@ -689,6 +693,8 @@ local function setTab(tab)
 		animContent.Visible    = false
 		remoteContent.Visible  = true
 		openPausedRemotesBtn.Visible = true
+		exportRemotesBtn.Visible = true
+		localPlayerFilterBtn.Visible = true
 		remoteTabBtn.BackgroundColor3 = Color3.fromRGB(28, 40, 62)
 		remoteTabBtn.TextColor3       = Color3.fromRGB(150, 205, 255)
 		remoteTabBtn.Font             = Enum.Font.GothamBold
@@ -727,7 +733,7 @@ end)
 
 localPlayerFilterBtn.MouseButton1Click:Connect(function()
 	remoteFilterLocal = not remoteFilterLocal
-	localPlayerFilterBtn.Text = remoteFilterLocal and "👤 Local" or "👤 All"
+	localPlayerFilterBtn.Text = remoteFilterLocal and "Local" or "All"
 	localPlayerFilterBtn.BackgroundColor3 = remoteFilterLocal and Color3.fromRGB(60,100,60) or Theme.ButtonDefault
 	applyRemoteFilter()
 end)
