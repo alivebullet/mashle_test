@@ -6,13 +6,16 @@ local UserInputService = game:GetService("UserInputService")
 local CollectionService = game:GetService("CollectionService")
 local RunService       = game:GetService("RunService")
 
-local DETECTION_RADIUS      = 100
+local DEFAULT_DETECTION_RADIUS = 100
+local MAX_DETECTION_RADIUS     = 200
 local MAX_LOG_ENTRIES       = 100
 local MIN_WIDTH, MIN_HEIGHT = 280, 200
 local MAX_WIDTH, MAX_HEIGHT = 1200, 900
 
 local localPlayer = Players.LocalPlayer
 local playerGui   = localPlayer:WaitForChild("PlayerGui")
+local rangeSphere = nil
+local rangeVisualizerConn = nil
 
 -- ========== THEME CONSTANTS ==========
 local Theme = {
@@ -269,6 +272,18 @@ titleLabel.Font               = Enum.Font.GothamBold
 titleLabel.TextSize           = 13
 titleLabel.Parent             = titleBar
 
+local settingsBtn = Instance.new("TextButton")
+settingsBtn.Size             = UDim2.new(0, 24, 0, 22)
+settingsBtn.Position         = UDim2.new(0, 252, 0, 5)
+settingsBtn.BackgroundColor3 = Theme.ButtonDefault
+settingsBtn.Text             = "⚙"
+settingsBtn.TextColor3       = Theme.TextPrimary
+settingsBtn.Font             = Enum.Font.GothamBold
+settingsBtn.TextSize         = 12
+settingsBtn.BorderSizePixel  = 0
+settingsBtn.Parent           = titleBar
+mkCorner(settingsBtn, 4)
+
 local strictBtn = Instance.new("TextButton")
 strictBtn.Size             = UDim2.new(0, 60, 0, 22)
 strictBtn.Position         = UDim2.new(1, -215, 0, 5)
@@ -399,6 +414,14 @@ confirmNo.Parent = confirmButtons
 mkCorner(confirmNo, 6)
 
 local function destroyScriptUI()
+	if rangeVisualizerConn then
+		rangeVisualizerConn:Disconnect()
+		rangeVisualizerConn = nil
+	end
+	if rangeSphere then
+		rangeSphere:Destroy()
+		rangeSphere = nil
+	end
 	if screenGui and screenGui.Parent then screenGui:Destroy() end
 	if detailFrame and detailFrame.Parent then detailFrame:Destroy() end
 	if remDetailFrame and remDetailFrame.Parent then remDetailFrame:Destroy() end
@@ -518,6 +541,114 @@ remoteContent.Position          = UDim2.new(0, 0, 0, 82)
 remoteContent.BackgroundTransparency = 1
 remoteContent.Visible           = false
 remoteContent.Parent            = mainFrame
+
+-- ===== SETTINGS Content =====
+local settingsContent = Instance.new("Frame")
+settingsContent.Size              = UDim2.new(1, 0, 1, -82)
+settingsContent.Position          = UDim2.new(0, 0, 0, 82)
+settingsContent.BackgroundTransparency = 1
+settingsContent.Visible           = false
+settingsContent.Parent            = mainFrame
+
+local settingsPanel = Instance.new("Frame")
+settingsPanel.Size = UDim2.new(1, -16, 1, -8)
+settingsPanel.Position = UDim2.new(0, 8, 0, 0)
+settingsPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+settingsPanel.BorderSizePixel = 0
+settingsPanel.Parent = settingsContent
+mkCorner(settingsPanel, 4)
+mkStroke(settingsPanel, Color3.fromRGB(48, 48, 60))
+
+local settingsTitle = Instance.new("TextLabel")
+settingsTitle.Size = UDim2.new(1, -20, 0, 24)
+settingsTitle.Position = UDim2.new(0, 10, 0, 10)
+settingsTitle.BackgroundTransparency = 1
+settingsTitle.Text = "Settings"
+settingsTitle.TextColor3 = Theme.TextPrimary
+settingsTitle.TextXAlignment = Enum.TextXAlignment.Left
+settingsTitle.Font = Enum.Font.GothamBold
+settingsTitle.TextSize = 13
+settingsTitle.Parent = settingsPanel
+
+local rangeValueLabel = Instance.new("TextLabel")
+rangeValueLabel.Size = UDim2.new(1, -20, 0, 22)
+rangeValueLabel.Position = UDim2.new(0, 10, 0, 46)
+rangeValueLabel.BackgroundTransparency = 1
+rangeValueLabel.Text = "Detection Range: 100 studs"
+rangeValueLabel.TextColor3 = Color3.fromRGB(165, 215, 255)
+rangeValueLabel.TextXAlignment = Enum.TextXAlignment.Left
+rangeValueLabel.Font = Enum.Font.Gotham
+rangeValueLabel.TextSize = 11
+rangeValueLabel.Parent = settingsPanel
+
+local rangeSliderTrack = Instance.new("Frame")
+rangeSliderTrack.Size = UDim2.new(1, -20, 0, 12)
+rangeSliderTrack.Position = UDim2.new(0, 10, 0, 74)
+rangeSliderTrack.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+rangeSliderTrack.BorderSizePixel = 0
+rangeSliderTrack.Parent = settingsPanel
+mkCorner(rangeSliderTrack, 6)
+
+local rangeSliderFill = Instance.new("Frame")
+rangeSliderFill.Size = UDim2.new(0.5, 0, 1, 0)
+rangeSliderFill.BackgroundColor3 = Color3.fromRGB(75, 120, 185)
+rangeSliderFill.BorderSizePixel = 0
+rangeSliderFill.Parent = rangeSliderTrack
+mkCorner(rangeSliderFill, 6)
+
+local rangeSliderKnob = Instance.new("Frame")
+rangeSliderKnob.Size = UDim2.new(0, 14, 0, 14)
+rangeSliderKnob.Position = UDim2.new(0.5, -7, 0.5, -7)
+rangeSliderKnob.BackgroundColor3 = Color3.fromRGB(210, 220, 240)
+rangeSliderKnob.BorderSizePixel = 0
+rangeSliderKnob.Parent = rangeSliderTrack
+mkCorner(rangeSliderKnob, 7)
+
+local rangeMinLabel = Instance.new("TextLabel")
+rangeMinLabel.Size = UDim2.new(0, 28, 0, 16)
+rangeMinLabel.Position = UDim2.new(0, 10, 0, 90)
+rangeMinLabel.BackgroundTransparency = 1
+rangeMinLabel.Text = "0"
+rangeMinLabel.TextColor3 = Theme.TextMuted
+rangeMinLabel.Font = Enum.Font.Gotham
+rangeMinLabel.TextSize = 10
+rangeMinLabel.TextXAlignment = Enum.TextXAlignment.Left
+rangeMinLabel.Parent = settingsPanel
+
+local rangeMaxLabel = Instance.new("TextLabel")
+rangeMaxLabel.Size = UDim2.new(0, 40, 0, 16)
+rangeMaxLabel.Position = UDim2.new(1, -50, 0, 90)
+rangeMaxLabel.BackgroundTransparency = 1
+rangeMaxLabel.Text = "200"
+rangeMaxLabel.TextColor3 = Theme.TextMuted
+rangeMaxLabel.Font = Enum.Font.Gotham
+rangeMaxLabel.TextSize = 10
+rangeMaxLabel.TextXAlignment = Enum.TextXAlignment.Right
+rangeMaxLabel.Parent = settingsPanel
+
+local visualizeRangeBtn = Instance.new("TextButton")
+visualizeRangeBtn.Size = UDim2.new(0, 170, 0, 24)
+visualizeRangeBtn.Position = UDim2.new(0, 10, 0, 126)
+visualizeRangeBtn.BackgroundColor3 = Theme.ButtonDefault
+visualizeRangeBtn.Text = "Visualize Range: OFF"
+visualizeRangeBtn.TextColor3 = Theme.TextPrimary
+visualizeRangeBtn.Font = Enum.Font.Gotham
+visualizeRangeBtn.TextSize = 10
+visualizeRangeBtn.BorderSizePixel = 0
+visualizeRangeBtn.Parent = settingsPanel
+mkCorner(visualizeRangeBtn, 4)
+
+local settingsBackBtn = Instance.new("TextButton")
+settingsBackBtn.Size = UDim2.new(0, 90, 0, 24)
+settingsBackBtn.Position = UDim2.new(1, -100, 0, 10)
+settingsBackBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 120)
+settingsBackBtn.Text = "Back"
+settingsBackBtn.TextColor3 = Theme.TextPrimary
+settingsBackBtn.Font = Enum.Font.GothamBold
+settingsBackBtn.TextSize = 11
+settingsBackBtn.BorderSizePixel = 0
+settingsBackBtn.Parent = settingsPanel
+mkCorner(settingsBackBtn, 4)
 
 -- Search bar for remotes
 local remoteSearchFrame = Instance.new("Frame")
@@ -656,6 +787,82 @@ local remoteFilterLocal   = false  -- show only local player's remotes
 local remoteSearchText    = ""
 local pausedIndividualRemotes = {} -- Tracks specifically paused remotes
 local pausedRemoteArchive = {} -- Keeps a restorable snapshot of paused remotes
+local detectionRadius     = DEFAULT_DETECTION_RADIUS
+local previousTab         = "animations"
+local sliderDragging      = false
+local rangeVisualizerEnabled = false
+
+local function getOriginPosition()
+	local c = localPlayer.Character
+	if c and c:FindFirstChild("HumanoidRootPart") then
+		return c.HumanoidRootPart.Position
+	end
+end
+
+local function updateRangeVisualizer()
+	if not rangeVisualizerEnabled then
+		if rangeVisualizerConn then
+			rangeVisualizerConn:Disconnect()
+			rangeVisualizerConn = nil
+		end
+		if rangeSphere then
+			rangeSphere:Destroy()
+			rangeSphere = nil
+		end
+		return
+	end
+
+	if not rangeSphere then
+		rangeSphere = Instance.new("Part")
+		rangeSphere.Name = "AnimDetectRangeSphere"
+		rangeSphere.Shape = Enum.PartType.Ball
+		rangeSphere.Anchored = true
+		rangeSphere.CanCollide = false
+		rangeSphere.CanQuery = false
+		rangeSphere.CastShadow = false
+		rangeSphere.Material = Enum.Material.ForceField
+		rangeSphere.Color = Color3.fromRGB(75, 130, 255)
+		rangeSphere.Transparency = 0.78
+		rangeSphere.Parent = workspace
+	end
+
+	local diameter = math.max(0.1, detectionRadius * 2)
+	rangeSphere.Size = Vector3.new(diameter, diameter, diameter)
+	local origin = getOriginPosition()
+	if origin then
+		rangeSphere.Position = origin
+		rangeSphere.Transparency = 0.78
+	else
+		rangeSphere.Transparency = 1
+	end
+
+	if not rangeVisualizerConn then
+		rangeVisualizerConn = RunService.RenderStepped:Connect(function()
+			if not rangeVisualizerEnabled then return end
+			if not rangeSphere then return end
+			local nowOrigin = getOriginPosition()
+			if nowOrigin then
+				rangeSphere.Position = nowOrigin
+				rangeSphere.Transparency = 0.78
+			else
+				rangeSphere.Transparency = 1
+			end
+		end)
+	end
+end
+
+local function updateRangeSliderVisual()
+	local alpha = detectionRadius / MAX_DETECTION_RADIUS
+	rangeSliderFill.Size = UDim2.new(alpha, 0, 1, 0)
+	rangeSliderKnob.Position = UDim2.new(alpha, -7, 0.5, -7)
+	rangeValueLabel.Text = ("Detection Range: %d studs"):format(detectionRadius)
+	updateRangeVisualizer()
+end
+
+local function setDetectionRadius(value)
+	detectionRadius = math.clamp(math.floor(value + 0.5), 0, MAX_DETECTION_RADIUS)
+	updateRangeSliderVisual()
+end
 
 -- ========== STATUS ==========
 local function updateStatus()
@@ -674,11 +881,15 @@ end
 local function setTab(tab)
 	activeTab = tab
 	if tab == "animations" then
+		previousTab = "animations"
 		animContent.Visible    = true
 		remoteContent.Visible  = false
+		settingsContent.Visible = false
+		statusLabel.Visible = true
 		openPausedRemotesBtn.Visible = false
 		exportRemotesBtn.Visible = false
 		localPlayerFilterBtn.Visible = false
+		settingsBtn.BackgroundColor3 = Theme.ButtonDefault
 		animTabBtn.BackgroundColor3   = Theme.TabActive
 		animTabBtn.TextColor3         = Theme.TabTextActive
 		animTabBtn.Font               = Enum.Font.GothamBold
@@ -689,12 +900,16 @@ local function setTab(tab)
 		clearBtn.Visible        = true
 		pauseAnimBtn.Visible    = true
 		pauseRemotesBtn.Visible = false
-	else
+	elseif tab == "remotes" then
+		previousTab = "remotes"
 		animContent.Visible    = false
 		remoteContent.Visible  = true
+		settingsContent.Visible = false
+		statusLabel.Visible = true
 		openPausedRemotesBtn.Visible = true
 		exportRemotesBtn.Visible = true
 		localPlayerFilterBtn.Visible = true
+		settingsBtn.BackgroundColor3 = Theme.ButtonDefault
 		remoteTabBtn.BackgroundColor3 = Color3.fromRGB(28, 40, 62)
 		remoteTabBtn.TextColor3       = Color3.fromRGB(150, 205, 255)
 		remoteTabBtn.Font             = Enum.Font.GothamBold
@@ -706,12 +921,33 @@ local function setTab(tab)
 		pauseAnimBtn.Visible    = false
 		pauseRemotesBtn.Visible = true
 		applyRemoteFilter()  -- reapply search filter when tab shown
+	else
+		animContent.Visible     = false
+		remoteContent.Visible   = false
+		settingsContent.Visible = true
+		statusLabel.Visible = false
+		openPausedRemotesBtn.Visible = false
+		exportRemotesBtn.Visible = false
+		localPlayerFilterBtn.Visible = false
+		strictBtn.Visible       = false
+		clearBtn.Visible        = false
+		pauseAnimBtn.Visible    = false
+		pauseRemotesBtn.Visible = false
+		animTabBtn.BackgroundColor3   = Theme.TabInactive
+		animTabBtn.TextColor3         = Theme.TabTextInactive
+		animTabBtn.Font               = Enum.Font.Gotham
+		remoteTabBtn.BackgroundColor3 = Theme.TabInactive
+		remoteTabBtn.TextColor3       = Theme.TabTextInactive
+		remoteTabBtn.Font             = Enum.Font.Gotham
+		settingsBtn.BackgroundColor3  = Color3.fromRGB(60, 95, 145)
 	end
 	updateStatus()
 end
 
 animTabBtn.MouseButton1Click:Connect(function()  setTab("animations") end)
 remoteTabBtn.MouseButton1Click:Connect(function() setTab("remotes")   end)
+settingsBtn.MouseButton1Click:Connect(function() setTab("settings") end)
+settingsBackBtn.MouseButton1Click:Connect(function() setTab(previousTab) end)
 
 strictBtn.MouseButton1Click:Connect(function()
 	strictMode = not strictMode
@@ -737,6 +973,42 @@ localPlayerFilterBtn.MouseButton1Click:Connect(function()
 	localPlayerFilterBtn.BackgroundColor3 = remoteFilterLocal and Color3.fromRGB(60,100,60) or Theme.ButtonDefault
 	applyRemoteFilter()
 end)
+
+local function updateSliderFromInputX(inputX)
+	local left = rangeSliderTrack.AbsolutePosition.X
+	local width = math.max(1, rangeSliderTrack.AbsoluteSize.X)
+	local alpha = math.clamp((inputX - left) / width, 0, 1)
+	setDetectionRadius(alpha * MAX_DETECTION_RADIUS)
+end
+
+rangeSliderTrack.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		sliderDragging = true
+		updateSliderFromInputX(i.Position.X)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(i)
+	if not sliderDragging then return end
+	if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+		updateSliderFromInputX(i.Position.X)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		sliderDragging = false
+	end
+end)
+
+visualizeRangeBtn.MouseButton1Click:Connect(function()
+	rangeVisualizerEnabled = not rangeVisualizerEnabled
+	visualizeRangeBtn.Text = rangeVisualizerEnabled and "Visualize Range: ON" or "Visualize Range: OFF"
+	visualizeRangeBtn.BackgroundColor3 = rangeVisualizerEnabled and Color3.fromRGB(60, 100, 150) or Theme.ButtonDefault
+	updateRangeVisualizer()
+end)
+
+setDetectionRadius(DEFAULT_DETECTION_RADIUS)
 
 -- ========== RICH TEXT HELPERS ==========
 local function bT(s)     return "<b>"..s.."</b>" end
@@ -1543,19 +1815,12 @@ clearRemBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ========== ANIMATION DETECTION ==========
-local function getOriginPosition()
-	local c = localPlayer.Character
-	if c and c:FindFirstChild("HumanoidRootPart") then
-		return c.HumanoidRootPart.Position
-	end
-end
-
 local function onAnimationPlayed(humanoid, animationTrack)
 	local character = humanoid.Parent; if not character then return end
 	local origin    = getOriginPosition(); if not origin then return end
 	local rootPart  = character:FindFirstChild("HumanoidRootPart"); if not rootPart then return end
 	local distance  = (rootPart.Position - origin).Magnitude
-	if distance > DETECTION_RADIUS then return end
+	if distance > detectionRadius then return end
 
 	local anim     = animationTrack.Animation
 	local animId   = anim and anim.AnimationId or "Unknown"
