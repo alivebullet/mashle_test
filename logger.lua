@@ -2343,12 +2343,7 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 		local showDetail = args[7]  -- showAnimDetailView function
 
 		local existing = pGui:FindFirstChild("PausedAnimationsPopup")
-		if existing then
-			local existingWin = existing:FindFirstChild("Win")
-			if (not existingWin) or (not existingWin:FindFirstChild("ResizeGrip")) then
-				existing:Destroy()
-			end
-		end
+		if existing then existing:Destroy() end
 
 		if not pGui:FindFirstChild("PausedAnimationsPopup") then
 			local UIS = game:GetService("UserInputService")
@@ -2448,6 +2443,7 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 			local function beginDrag(input)
 				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 					dragging = true
+					dragInput = input
 					dragStart = input.Position
 					startPos = win.Position
 					input.Changed:Connect(function()
@@ -2462,19 +2458,10 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 			tl.InputBegan:Connect(beginDrag)
 			tf.InputBegan:Connect(beginDrag)
 
-			local function trackDragInput(input)
-				if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-					dragInput = input
-				end
-			end
-
-			tb.InputChanged:Connect(trackDragInput)
-			tl.InputChanged:Connect(trackDragInput)
-			tf.InputChanged:Connect(trackDragInput)
-
 			rg.InputBegan:Connect(function(input)
 				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 					resizing = true
+					resizeInput = input
 					resizeStart = input.Position
 					startSize = win.AbsoluteSize
 					input.Changed:Connect(function()
@@ -2482,12 +2469,6 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 							resizing = false
 						end
 					end)
-				end
-			end)
-
-			rg.InputChanged:Connect(function(input)
-				if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-					resizeInput = input
 				end
 			end)
 
