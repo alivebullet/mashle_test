@@ -2179,6 +2179,7 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 		local pIR = args[5]
 		local pRA = args[6]
 		local Plrs = args[7]
+		local showRD = args[8]
 
 		if not pGui:FindFirstChild("PausedRemotesPopup") then
 			local gui = Instance.new("ScreenGui")
@@ -2365,16 +2366,21 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 		for i, rName in ipairs(names) do
 			local data = pRA[rName]
 			if data then
-				local entry = Instance.new("TextButton", scroll)
-				entry.Size = UDim2.new(1,-4,0,46)
-				entry.BackgroundColor3 = T.EntryBg
-				entry.BorderSizePixel = 0
-				entry.LayoutOrder = i
-				entry.AutoButtonColor = false
-				entry.Text = ""
-				mkC(entry, 4)
+				local row = Instance.new("Frame", scroll)
+				row.Size = UDim2.new(1,-4,0,54)
+				row.BackgroundColor3 = T.EntryBg
+				row.BorderSizePixel = 0
+				row.LayoutOrder = i
+				mkC(row, 4)
 
-				local badge = Instance.new("TextLabel", entry)
+				local clickArea = Instance.new("TextButton", row)
+				clickArea.Size = UDim2.new(1,-82,1,0)
+				clickArea.Position = UDim2.new(0,0,0,0)
+				clickArea.BackgroundTransparency = 1
+				clickArea.Text = ""
+				clickArea.AutoButtonColor = false
+
+				local badge = Instance.new("TextLabel", row)
 				badge.Size = UDim2.new(0,28,0,12)
 				badge.Position = UDim2.new(0,4,0,4)
 				badge.BackgroundColor3 = Color3.fromRGB(180,60,60)
@@ -2385,9 +2391,9 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 				badge.BorderSizePixel = 0
 				mkC(badge, 3)
 
-				local ts = Instance.new("TextLabel", entry)
+				local ts = Instance.new("TextLabel", row)
 				ts.Size = UDim2.new(0,58,0,15)
-				ts.Position = UDim2.new(1,-62,0,4)
+				ts.Position = UDim2.new(1,-144,0,4)
 				ts.BackgroundTransparency = 1
 				ts.Text = data.timestamp or ""
 				ts.TextColor3 = Color3.fromRGB(110,110,130)
@@ -2395,8 +2401,8 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 				ts.Font = Enum.Font.Gotham
 				ts.TextSize = 9
 
-				local nl = Instance.new("TextLabel", entry)
-				nl.Size = UDim2.new(1,-10,0,14)
+				local nl = Instance.new("TextLabel", row)
+				nl.Size = UDim2.new(1,-92,0,14)
 				nl.Position = UDim2.new(0,6,0,20)
 				nl.BackgroundTransparency = 1
 				nl.Text = data.remoteName or rName
@@ -2406,9 +2412,9 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 				nl.TextSize = 11
 				nl.TextTruncate = Enum.TextTruncate.AtEnd
 
-				local al = Instance.new("TextLabel", entry)
-				al.Size = UDim2.new(1,-10,0,12)
-				al.Position = UDim2.new(0,6,0,31)
+				local al = Instance.new("TextLabel", row)
+				al.Size = UDim2.new(1,-92,0,12)
+				al.Position = UDim2.new(0,6,0,37)
 				al.BackgroundTransparency = 1
 				al.Text = data.argsPreview or ""
 				al.TextColor3 = Color3.fromRGB(140,155,165)
@@ -2417,15 +2423,41 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 				al.TextSize = 9
 				al.TextTruncate = Enum.TextTruncate.AtEnd
 
-				entry.MouseEnter:Connect(function() entry.BackgroundColor3 = T.EntryHover end)
-				entry.MouseLeave:Connect(function() entry.BackgroundColor3 = T.EntryBg end)
+				local unpBtn = Instance.new("TextButton", row)
+				unpBtn.Size = UDim2.new(0,72,0,28)
+				unpBtn.Position = UDim2.new(1,-76,0.5,-14)
+				unpBtn.BackgroundColor3 = Color3.fromRGB(42,112,72)
+				unpBtn.Text = "Unpause"
+				unpBtn.TextColor3 = Color3.fromRGB(255,255,255)
+				unpBtn.Font = Enum.Font.GothamBold
+				unpBtn.TextSize = 10
+				unpBtn.BorderSizePixel = 0
+				unpBtn.AutoButtonColor = false
+				mkC(unpBtn, 4)
+
+				local capturedName = rName
+				local capturedData = data
+				unpBtn.MouseButton1Click:Connect(function()
+					pIR[capturedName] = nil
+					pRA[capturedName] = nil
+					row:Destroy()
+					local tl3 = win:FindFirstChild("TitleBar") and win.TitleBar:FindFirstChild("TitleLbl")
+					local remaining = 0
+					for _ in pairs(pIR) do remaining += 1 end
+					if tl3 then tl3.Text = ("Paused Remotes (%d)"):format(remaining) end
+				end)
+				clickArea.MouseButton1Click:Connect(function()
+					if showRD then showRD(capturedData) end
+				end)
+				row.MouseEnter:Connect(function() row.BackgroundColor3 = T.EntryHover end)
+				row.MouseLeave:Connect(function() row.BackgroundColor3 = T.EntryBg end)
 			end
 		end
 
 		local tl2 = win:FindFirstChild("TitleBar") and win.TitleBar:FindFirstChild("TitleLbl")
 		if tl2 then tl2.Text = ("Paused Remotes (%d)"):format(#names) end
 		popG.Enabled = true
-	]]), {playerGui, Theme, mkCorner, mkStroke, pausedIndividualRemotes, pausedRemoteArchive, Players})
+	]]), {playerGui, Theme, mkCorner, mkStroke, pausedIndividualRemotes, pausedRemoteArchive, Players, showRemoteDetail})
 end)
 
 openPausedAnimationsBtn.MouseButton1Click:Connect(function()
