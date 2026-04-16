@@ -795,17 +795,20 @@ colorWheel.ClipsDescendants = true
 colorWheel.Parent = wheelContainer
 mkCorner(colorWheel, 73)
 
-local colorWheelRadius = 68
-local wheelDotSize = 7
-for satStep = 1, 10 do
-	local sat = satStep / 10
+local wheelSize = 146
+local wheelCenter = wheelSize * 0.5
+local colorWheelRadius = (wheelSize * 0.5) - 2
+local wheelDotSize = 5
+local satSteps = 18
+for satStep = 1, satSteps do
+	local sat = satStep / satSteps
 	local radius = sat * colorWheelRadius
-	local segments = math.max(16, math.floor(18 + sat * 46))
+	local segments = math.max(24, math.floor((2 * math.pi * math.max(radius, 8)) / 4))
 	for seg = 1, segments do
 		local hue = (seg - 1) / segments
 		local angle = hue * (math.pi * 2)
-		local px = 73 + math.cos(angle) * radius
-		local py = 73 - math.sin(angle) * radius
+		local px = wheelCenter + math.cos(angle) * radius
+		local py = wheelCenter - math.sin(angle) * radius
 
 		local dot = Instance.new("Frame")
 		dot.Size = UDim2.new(0, wheelDotSize, 0, wheelDotSize)
@@ -1099,8 +1102,9 @@ local function updateColorPickerUI()
 	local color = Color3.fromRGB(rangeColorR, rangeColorG, rangeColorB)
 	colorPreviewSwatch.BackgroundColor3 = color
 	colorHexLabel.Text = ("#%02X%02X%02X"):format(rangeColorR, rangeColorG, rangeColorB)
+	local wheelMaxRadius = math.max(1, (math.min(colorWheel.AbsoluteSize.X, colorWheel.AbsoluteSize.Y) * 0.5) - 2)
 	local angle = rangeHue * (math.pi * 2)
-	local radius = math.clamp(rangeSat, 0, 1) * colorWheelRadius
+	local radius = math.clamp(rangeSat, 0, 1) * wheelMaxRadius
 	local cx = (colorWheel.AbsoluteSize.X * 0.5) + math.cos(angle) * radius
 	local cy = (colorWheel.AbsoluteSize.Y * 0.5) - math.sin(angle) * radius
 	colorWheelCursor.Position = UDim2.new(0, math.floor(cx - 6), 0, math.floor(cy - 6))
@@ -1255,10 +1259,11 @@ end
 local function updateWheelFromInput(inputPos)
 	local centerX = colorWheel.AbsolutePosition.X + (colorWheel.AbsoluteSize.X * 0.5)
 	local centerY = colorWheel.AbsolutePosition.Y + (colorWheel.AbsoluteSize.Y * 0.5)
+	local wheelMaxRadius = math.max(1, (math.min(colorWheel.AbsoluteSize.X, colorWheel.AbsoluteSize.Y) * 0.5) - 2)
 	local dx = inputPos.X - centerX
 	local dy = inputPos.Y - centerY
 	local dist = math.sqrt(dx * dx + dy * dy)
-	local sat = math.clamp(dist / colorWheelRadius, 0, 1)
+	local sat = math.clamp(dist / wheelMaxRadius, 0, 1)
 	local ang = math.atan(-dy, dx)
 	local hue = (ang / (math.pi * 2)) % 1
 	setRangeColorFromHSV(hue, sat, 1)
