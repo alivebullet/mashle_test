@@ -1035,19 +1035,6 @@ localPlayerFilterBtn.Visible = false
 localPlayerFilterBtn.Parent = mainFrame
 mkCorner(localPlayerFilterBtn, 4)
 
-local localPlayerAnimFilterBtn = Instance.new("TextButton")
-localPlayerAnimFilterBtn.Size = UDim2.new(0, 52, 0, 18)
-localPlayerAnimFilterBtn.Position = UDim2.new(1, -268, 0, 62)
-localPlayerAnimFilterBtn.BackgroundColor3 = Theme.ButtonDefault
-localPlayerAnimFilterBtn.Text = "All"
-localPlayerAnimFilterBtn.TextColor3 = Theme.TextPrimary
-localPlayerAnimFilterBtn.Font = Enum.Font.Gotham
-localPlayerAnimFilterBtn.TextSize = 10
-localPlayerAnimFilterBtn.BorderSizePixel = 0
-localPlayerAnimFilterBtn.Visible = false
-localPlayerAnimFilterBtn.Parent = mainFrame
-mkCorner(localPlayerAnimFilterBtn, 4)
-
 -- ===== Resize grip (main) =====
 local resizeGrip = Instance.new("TextButton")
 resizeGrip.Size                   = UDim2.new(0, 16, 0, 16)
@@ -1077,14 +1064,12 @@ local selectedRemoteEntry = nil
 local activeTab           = "animations"
 local animLogPaused       = false
 local remoteLogPaused     = false
-local animFilterLocal     = false
 local remoteFilterLocal   = false  -- show only local player's remotes
 local remoteSearchText    = ""
 local pausedIndividualRemotes = {} -- Tracks specifically paused remotes
 local pausedRemoteArchive = {} -- Keeps a restorable snapshot of paused remotes
 local pausedAnimationArchive = {}
 local animEntries = {}
-local applyAnimFilter
 local detectionRadius     = DEFAULT_DETECTION_RADIUS
 local previousTab         = "animations"
 local activeSliderUpdate  = nil
@@ -1231,7 +1216,6 @@ local function setTab(tab)
 		statusLabel.Visible = true
 		openPausedAnimationsBtn.Visible = true
 		exportAnimationsBtn.Visible = true
-		localPlayerAnimFilterBtn.Visible = true
 		openPausedRemotesBtn.Visible = false
 		exportRemotesBtn.Visible = false
 		localPlayerFilterBtn.Visible = false
@@ -1254,7 +1238,6 @@ local function setTab(tab)
 		statusLabel.Visible = true
 		openPausedAnimationsBtn.Visible = false
 		exportAnimationsBtn.Visible = false
-		localPlayerAnimFilterBtn.Visible = false
 		openPausedRemotesBtn.Visible = true
 		exportRemotesBtn.Visible = true
 		localPlayerFilterBtn.Visible = true
@@ -1277,7 +1260,6 @@ local function setTab(tab)
 		statusLabel.Visible = false
 		openPausedAnimationsBtn.Visible = false
 		exportAnimationsBtn.Visible = false
-		localPlayerAnimFilterBtn.Visible = false
 		openPausedRemotesBtn.Visible = false
 		exportRemotesBtn.Visible = false
 		localPlayerFilterBtn.Visible = false
@@ -1324,13 +1306,6 @@ localPlayerFilterBtn.MouseButton1Click:Connect(function()
 	localPlayerFilterBtn.Text = remoteFilterLocal and "Local" or "All"
 	localPlayerFilterBtn.BackgroundColor3 = remoteFilterLocal and Color3.fromRGB(60,100,60) or Theme.ButtonDefault
 	applyRemoteFilter()
-end)
-
-localPlayerAnimFilterBtn.MouseButton1Click:Connect(function()
-	animFilterLocal = not animFilterLocal
-	localPlayerAnimFilterBtn.Text = animFilterLocal and "Local" or "All"
-	localPlayerAnimFilterBtn.BackgroundColor3 = animFilterLocal and Color3.fromRGB(60,100,60) or Theme.ButtonDefault
-	if applyAnimFilter then applyAnimFilter() end
 end)
 
 local function updateSliderFromInputX(inputX)
@@ -1979,14 +1954,6 @@ end)
 refreshAnimBtn.MouseButton1Click:Connect(refreshAnimDetail)
 
 -- ========== ANIMATION LOG ENTRY ==========
-applyAnimFilter = function()
-	for _, e in ipairs(animEntries) do
-		if e.button then
-			e.button.Visible = (not animFilterLocal) or (e.player == localPlayer)
-		end
-	end
-end
-
 local function addLogEntry(data)
 	if animLogPaused then
 		filteredCount += 1
@@ -1997,7 +1964,6 @@ local function addLogEntry(data)
 		updateStatus()
 		return
 	end
-	if animFilterLocal and data.player ~= localPlayer then return end
 	detectionCount += 1; updateStatus()
 
 	local children = {}
@@ -2044,7 +2010,6 @@ local function addLogEntry(data)
 	entry.MouseLeave:Connect(function()  entry.BackgroundColor3 = Theme.EntryBg end)
 	entry.MouseButton1Click:Connect(function() showAnimDetailView(data) end)
 	table.insert(animEntries, { button = entry, data = data, player = player })
-	applyAnimFilter()
 	task.defer(function()
 		scrollFrame.CanvasPosition = Vector2.new(0, scrollFrame.AbsoluteCanvasSize.Y)
 	end)
