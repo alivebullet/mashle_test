@@ -785,68 +785,47 @@ wheelContainer.Parent = colorPickerFrame
 mkCorner(wheelContainer, 77)
 mkStroke(wheelContainer, Color3.fromRGB(58, 58, 74))
 
-local colorWheel = Instance.new("Frame")
+local colorWheel = Instance.new("ImageLabel")
 colorWheel.Size = UDim2.new(0, 146, 0, 146)
 colorWheel.Position = UDim2.new(0.5, -73, 0.5, -73)
 colorWheel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+colorWheel.BackgroundTransparency = 1
 colorWheel.BorderSizePixel = 0
 colorWheel.ZIndex = 10
-colorWheel.ClipsDescendants = true
+colorWheel.Image = "rbxassetid://698052001"
 colorWheel.Parent = wheelContainer
 mkCorner(colorWheel, 73)
-
-local wheelSize = 146
-local wheelCenter = wheelSize * 0.5
-local colorWheelRadius = (wheelSize * 0.5) - 2
-local wheelDotSize = 5
-local satSteps = 18
-for satStep = 1, satSteps do
-	local sat = satStep / satSteps
-	local radius = sat * colorWheelRadius
-	local segments = math.max(24, math.floor((2 * math.pi * math.max(radius, 8)) / 4))
-	for seg = 1, segments do
-		local hue = (seg - 1) / segments
-		local angle = hue * (math.pi * 2)
-		local px = wheelCenter + math.cos(angle) * radius
-		local py = wheelCenter - math.sin(angle) * radius
-
-		local dot = Instance.new("Frame")
-		dot.Size = UDim2.new(0, wheelDotSize, 0, wheelDotSize)
-		dot.Position = UDim2.new(0, math.floor(px - wheelDotSize * 0.5), 0, math.floor(py - wheelDotSize * 0.5))
-		dot.BackgroundColor3 = Color3.fromHSV(hue, sat, 1)
-		dot.BorderSizePixel = 0
-		dot.ZIndex = 11
-		dot.Parent = colorWheel
-		mkCorner(dot, 4)
-	end
-end
-
-local wheelCenterDot = Instance.new("Frame")
-wheelCenterDot.Size = UDim2.new(0, 10, 0, 10)
-wheelCenterDot.Position = UDim2.new(0.5, -5, 0.5, -5)
-wheelCenterDot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-wheelCenterDot.BorderSizePixel = 0
-wheelCenterDot.ZIndex = 11
-wheelCenterDot.Parent = colorWheel
-mkCorner(wheelCenterDot, 5)
 
 local colorWheelInput = Instance.new("TextButton")
 colorWheelInput.Size = UDim2.new(1, 0, 1, 0)
 colorWheelInput.BackgroundTransparency = 1
 colorWheelInput.Text = ""
 colorWheelInput.AutoButtonColor = false
-colorWheelInput.ZIndex = 12
+colorWheelInput.ZIndex = 11
 colorWheelInput.Parent = colorWheel
 
 local colorWheelCursor = Instance.new("Frame")
-colorWheelCursor.Size = UDim2.new(0, 12, 0, 12)
-colorWheelCursor.Position = UDim2.new(1, -6, 0.5, -6)
-colorWheelCursor.BackgroundColor3 = Color3.fromRGB(230, 230, 240)
+colorWheelCursor.Size = UDim2.new(0, 14, 0, 14)
+colorWheelCursor.Position = UDim2.new(0.5, -7, 0.5, -7)
+colorWheelCursor.BackgroundTransparency = 1
 colorWheelCursor.BorderSizePixel = 0
-colorWheelCursor.ZIndex = 13
+colorWheelCursor.ZIndex = 12
 colorWheelCursor.Parent = colorWheel
-mkCorner(colorWheelCursor, 6)
-mkStroke(colorWheelCursor, Color3.fromRGB(20, 20, 24))
+local cursorInner = Instance.new("Frame")
+cursorInner.Size = UDim2.new(1, 0, 1, 0)
+cursorInner.BackgroundTransparency = 1
+cursorInner.BorderSizePixel = 0
+cursorInner.Parent = colorWheelCursor
+mkCorner(cursorInner, 7)
+mkStroke(cursorInner, Color3.fromRGB(255, 255, 255), 2)
+local cursorOuter = Instance.new("Frame")
+cursorOuter.Size = UDim2.new(1, 4, 1, 4)
+cursorOuter.Position = UDim2.new(0, -2, 0, -2)
+cursorOuter.BackgroundTransparency = 1
+cursorOuter.BorderSizePixel = 0
+cursorOuter.Parent = colorWheelCursor
+mkCorner(cursorOuter, 9)
+mkStroke(cursorOuter, Color3.fromRGB(0, 0, 0))
 
 local opacitySlider = createSimpleSlider(settingsPanel, 214, "Opacity", 0, 100)
 opacitySlider.fill.BackgroundColor3 = Color3.fromRGB(120, 120, 170)
@@ -1102,12 +1081,14 @@ local function updateColorPickerUI()
 	local color = Color3.fromRGB(rangeColorR, rangeColorG, rangeColorB)
 	colorPreviewSwatch.BackgroundColor3 = color
 	colorHexLabel.Text = ("#%02X%02X%02X"):format(rangeColorR, rangeColorG, rangeColorB)
-	local wheelMaxRadius = math.max(1, (math.min(colorWheel.AbsoluteSize.X, colorWheel.AbsoluteSize.Y) * 0.5) - 2)
+	local halfW = colorWheel.AbsoluteSize.X * 0.5
+	local halfH = colorWheel.AbsoluteSize.Y * 0.5
+	local wheelR = math.max(1, math.min(halfW, halfH))
 	local angle = rangeHue * (math.pi * 2)
-	local radius = math.clamp(rangeSat, 0, 1) * wheelMaxRadius
-	local cx = (colorWheel.AbsoluteSize.X * 0.5) + math.cos(angle) * radius
-	local cy = (colorWheel.AbsoluteSize.Y * 0.5) - math.sin(angle) * radius
-	colorWheelCursor.Position = UDim2.new(0, math.floor(cx - 6), 0, math.floor(cy - 6))
+	local radius = math.clamp(rangeSat, 0, 1) * wheelR
+	local cx = halfW + math.cos(angle) * radius
+	local cy = halfH - math.sin(angle) * radius
+	colorWheelCursor.Position = UDim2.new(0, math.floor(cx - 7), 0, math.floor(cy - 7))
 end
 
 local function setRangeColorFromHSV(h, s, v)
@@ -1256,18 +1237,42 @@ local function beginSliderDrag(updateFn, inputPos)
 	updateFn(inputPos)
 end
 
-local function updateWheelFromInput(inputPos)
+local wheelDragging = false
+
+local function updateWheelFromMouse()
+	local mousePos = UserInputService:GetMouseLocation()
+	local guiInset = game:GetService("GuiService"):GetGuiInset()
+	local screenPos = Vector2.new(mousePos.X, mousePos.Y - guiInset.Y)
 	local centerX = colorWheel.AbsolutePosition.X + (colorWheel.AbsoluteSize.X * 0.5)
 	local centerY = colorWheel.AbsolutePosition.Y + (colorWheel.AbsoluteSize.Y * 0.5)
-	local wheelMaxRadius = math.max(1, (math.min(colorWheel.AbsoluteSize.X, colorWheel.AbsoluteSize.Y) * 0.5) - 2)
-	local dx = inputPos.X - centerX
-	local dy = inputPos.Y - centerY
+	local wheelR = math.max(1, math.min(colorWheel.AbsoluteSize.X, colorWheel.AbsoluteSize.Y) * 0.5)
+	local dx = screenPos.X - centerX
+	local dy = screenPos.Y - centerY
 	local dist = math.sqrt(dx * dx + dy * dy)
-	local sat = math.clamp(dist / wheelMaxRadius, 0, 1)
+	local sat = math.clamp(dist / wheelR, 0, 1)
 	local ang = math.atan(-dy, dx)
 	local hue = (ang / (math.pi * 2)) % 1
 	setRangeColorFromHSV(hue, sat, 1)
 end
+
+colorWheelInput.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		wheelDragging = true
+		updateWheelFromMouse()
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(i)
+	if wheelDragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+		updateWheelFromMouse()
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		wheelDragging = false
+	end
+end)
 
 rangeSliderTrack.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
@@ -1306,9 +1311,6 @@ local function bindPickerDrag(guiObj, fn)
 		end
 	end)
 end
-
-bindPickerDrag(colorWheelInput, updateWheelFromInput)
-bindPickerDrag(colorWheelCursor, updateWheelFromInput)
 
 UserInputService.InputChanged:Connect(function(i)
 	if not activeSliderUpdate then return end
