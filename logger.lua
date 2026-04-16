@@ -2343,6 +2343,7 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 		local showDetail = args[7]  -- showAnimDetailView function
 
 		if not pGui:FindFirstChild("PausedAnimationsPopup") then
+			local UIS = game:GetService("UserInputService")
 			local gui = Instance.new("ScreenGui")
 			gui.Name = "PausedAnimationsPopup"
 			gui.ResetOnSpawn = false
@@ -2364,6 +2365,7 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 			tb.Size = UDim2.new(1,0,0,32)
 			tb.BackgroundColor3 = T.TitleBar
 			tb.BorderSizePixel = 0
+			tb.Active = true
 			mkC(tb, 8)
 			local tf = Instance.new("Frame", win)
 			tf.Size = UDim2.new(1,0,0,8)
@@ -2408,6 +2410,81 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 			local ly = Instance.new("UIListLayout", sc)
 			ly.SortOrder = Enum.SortOrder.LayoutOrder
 			ly.Padding = UDim.new(0,3)
+
+			local rg = Instance.new("TextButton", win)
+			rg.Name = "ResizeGrip"
+			rg.Size = UDim2.new(0,16,0,16)
+			rg.Position = UDim2.new(1,-18,1,-18)
+			rg.BackgroundColor3 = T.ScrollBarColor
+			rg.BackgroundTransparency = 0.35
+			rg.Text = "⇲"
+			rg.TextColor3 = T.TextPrimary
+			rg.Font = Enum.Font.GothamBold
+			rg.TextSize = 11
+			rg.BorderSizePixel = 0
+			rg.AutoButtonColor = false
+			mkC(rg, 3)
+
+			local dragging = false
+			local dragInput = nil
+			local dragStart = nil
+			local startPos = nil
+
+			local resizing = false
+			local resizeInput = nil
+			local resizeStart = nil
+			local startSize = nil
+
+			tb.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					dragging = true
+					dragStart = input.Position
+					startPos = win.Position
+					input.Changed:Connect(function()
+						if input.UserInputState == Enum.UserInputState.End then
+							dragging = false
+						end
+					end)
+				end
+			end)
+
+			tb.InputChanged:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+					dragInput = input
+				end
+			end)
+
+			rg.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					resizing = true
+					resizeStart = input.Position
+					startSize = win.AbsoluteSize
+					input.Changed:Connect(function()
+						if input.UserInputState == Enum.UserInputState.End then
+							resizing = false
+						end
+					end)
+				end
+			end)
+
+			rg.InputChanged:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+					resizeInput = input
+				end
+			end)
+
+			UIS.InputChanged:Connect(function(input)
+				if dragging and dragInput and input == dragInput and dragStart and startPos then
+					local delta = input.Position - dragStart
+					win.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+				end
+				if resizing and resizeInput and input == resizeInput and resizeStart and startSize then
+					local delta = input.Position - resizeStart
+					local newW = math.clamp(startSize.X + delta.X, 360, 1200)
+					local newH = math.clamp(startSize.Y + delta.Y, 260, 900)
+					win.Size = UDim2.new(0, newW, 0, newH)
+				end
+			end)
 		end
 
 		local popG = pGui:FindFirstChild("PausedAnimationsPopup")
