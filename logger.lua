@@ -392,12 +392,9 @@ local function destroyScriptUI()
 end
 
 mainCloseBtn.MouseButton1Click:Connect(function()
-	if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.RightControl) then
-		confirmFrame.Visible = true
-	else
-		mainFrame.Visible = false;
-		reopenBtn.Visible = true
-	end
+	mainFrame.Visible = false
+	reopenBtn.Visible = true
+	reopenCloseBtn.Visible = true
 end)
 
 confirmYes.MouseButton1Click:Connect(function()
@@ -431,7 +428,8 @@ reopenCloseBtn.MouseButton1Click:Connect(function()
 	confirmFrame.Visible = true
 end)
 
--- ===== Tab Bar =====nlocal tabBar = Instance.new("Frame")
+-- ===== Tab Bar =====
+local tabBar = Instance.new("Frame")
 tabBar.Size             = UDim2.new(1, 0, 0, 28)
 tabBar.Position         = UDim2.new(0, 0, 0, 32)
 tabBar.BackgroundColor3 = Color3.fromRGB(18, 18, 23)
