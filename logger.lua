@@ -224,6 +224,19 @@ reopenBtn.Parent           = screenGui
 mkCorner(reopenBtn, 6);
 mkStroke(reopenBtn, Color3.fromRGB(100, 80, 130))
 
+local reopenCloseBtn = Instance.new("TextButton")
+reopenCloseBtn.Size             = UDim2.new(0, 24, 0, 32)
+reopenCloseBtn.Position         = UDim2.new(0, 156, 0, 80)
+reopenCloseBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+reopenCloseBtn.Text             = "X"
+reopenCloseBtn.TextColor3       = Theme.TextPrimary
+reopenCloseBtn.Font             = Enum.Font.GothamBold
+reopenCloseBtn.TextSize         = 12
+reopenCloseBtn.BorderSizePixel  = 0
+reopenCloseBtn.Visible          = false
+reopenCloseBtn.Parent           = screenGui
+mkCorner(reopenCloseBtn, 6)
+
 -- ===== Main Frame =====
 local mainFrame = Instance.new("Frame")
 mainFrame.Name             = "MainFrame"
@@ -404,19 +417,6 @@ end)
 confirmNo.MouseButton1Click:Connect(function()
 	confirmFrame.Visible = false
 end)
-
-local reopenCloseBtn = Instance.new("TextButton")
-reopenCloseBtn.Size             = UDim2.new(0, 24, 0, 32)
-reopenCloseBtn.Position         = UDim2.new(0, 156, 0, 80)
-reopenCloseBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
-reopenCloseBtn.Text             = "X"
-reopenCloseBtn.TextColor3       = Theme.TextPrimary
-reopenCloseBtn.Font             = Enum.Font.GothamBold
-reopenCloseBtn.TextSize         = 12
-reopenCloseBtn.BorderSizePixel  = 0
-reopenCloseBtn.Visible          = false
-reopenCloseBtn.Parent           = screenGui
-mkCorner(reopenCloseBtn, 6)
 
 reopenBtn.MouseButton1Click:Connect(function()
 	mainFrame.Visible = true
