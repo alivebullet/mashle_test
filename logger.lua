@@ -462,7 +462,7 @@ mkCorner(remoteTabBtn, 4)
 
 -- ===== Status Label =====
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size               = UDim2.new(1, -16, 0, 18)
+statusLabel.Size               = UDim2.new(1, -170, 0, 18)
 statusLabel.Position           = UDim2.new(0, 8, 0, 62)
 statusLabel.BackgroundTransparency = 1
 statusLabel.Text               = "Detected: 0  | Filtered: 0"
@@ -471,6 +471,19 @@ statusLabel.TextXAlignment     = Enum.TextXAlignment.Left
 statusLabel.Font               = Enum.Font.Gotham
 statusLabel.TextSize           = 11
 statusLabel.Parent             = mainFrame
+
+local openPausedRemotesBtn = Instance.new("TextButton")
+openPausedRemotesBtn.Size = UDim2.new(0, 152, 0, 18)
+openPausedRemotesBtn.Position = UDim2.new(1, -160, 0, 62)
+openPausedRemotesBtn.BackgroundColor3 = Color3.fromRGB(42, 74, 120)
+openPausedRemotesBtn.Text = "Open Paused Remotes"
+openPausedRemotesBtn.TextColor3 = Theme.TextPrimary
+openPausedRemotesBtn.Font = Enum.Font.Gotham
+openPausedRemotesBtn.TextSize = 10
+openPausedRemotesBtn.BorderSizePixel = 0
+openPausedRemotesBtn.Visible = false
+openPausedRemotesBtn.Parent = mainFrame
+mkCorner(openPausedRemotesBtn, 4)
 
 -- ===== ANIMATIONS Content =====
 local animContent = Instance.new("Frame")
@@ -530,21 +543,9 @@ searchBox.ClearTextOnFocus = false
 searchBox.Parent = remoteSearchFrame
 mkCorner(searchBox, 4)
 
-local openPausedRemotesBtn = Instance.new("TextButton")
-openPausedRemotesBtn.Size = UDim2.new(1, -16, 0, 22)
-openPausedRemotesBtn.Position = UDim2.new(0, 8, 0, 30)
-openPausedRemotesBtn.BackgroundColor3 = Color3.fromRGB(42, 74, 120)
-openPausedRemotesBtn.Text = "Open Paused Remotes"
-openPausedRemotesBtn.TextColor3 = Theme.TextPrimary
-openPausedRemotesBtn.Font = Enum.Font.Gotham
-openPausedRemotesBtn.TextSize = 10
-openPausedRemotesBtn.BorderSizePixel = 0
-openPausedRemotesBtn.Parent = remoteContent
-mkCorner(openPausedRemotesBtn, 4)
-
 local remoteScroll = Instance.new("ScrollingFrame")
-remoteScroll.Size               = UDim2.new(1, -16, 1, -104)
-remoteScroll.Position           = UDim2.new(0, 8, 0, 58)
+remoteScroll.Size               = UDim2.new(1, -16, 1, -78)
+remoteScroll.Position           = UDim2.new(0, 8, 0, 32)
 remoteScroll.BackgroundColor3   = Color3.fromRGB(15, 15, 20)
 remoteScroll.BorderSizePixel    = 0
 remoteScroll.ScrollBarThickness = 6
@@ -673,6 +674,7 @@ local function setTab(tab)
 	if tab == "animations" then
 		animContent.Visible    = true
 		remoteContent.Visible  = false
+		openPausedRemotesBtn.Visible = false
 		animTabBtn.BackgroundColor3   = Theme.TabActive
 		animTabBtn.TextColor3         = Theme.TabTextActive
 		animTabBtn.Font               = Enum.Font.GothamBold
@@ -686,6 +688,7 @@ local function setTab(tab)
 	else
 		animContent.Visible    = false
 		remoteContent.Visible  = true
+		openPausedRemotesBtn.Visible = true
 		remoteTabBtn.BackgroundColor3 = Color3.fromRGB(28, 40, 62)
 		remoteTabBtn.TextColor3       = Color3.fromRGB(150, 205, 255)
 		remoteTabBtn.Font             = Enum.Font.GothamBold
