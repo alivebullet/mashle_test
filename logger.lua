@@ -2246,6 +2246,61 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 			local ly = Instance.new("UIListLayout", sc)
 			ly.SortOrder = Enum.SortOrder.LayoutOrder
 			ly.Padding = UDim.new(0,3)
+
+			local rg = Instance.new("TextButton", win)
+			rg.Name = "ResizeGrip"
+			rg.Size = UDim2.new(0,16,0,16)
+			rg.Position = UDim2.new(1,-18,1,-18)
+			rg.BackgroundColor3 = T.ScrollBarColor
+			rg.BackgroundTransparency = 0.35
+			rg.Text = "⇲"
+			rg.TextColor3 = T.TextPrimary
+			rg.Font = Enum.Font.GothamBold
+			rg.TextSize = 11
+			rg.BorderSizePixel = 0
+			rg.AutoButtonColor = false
+			rg.ZIndex = 10
+			mkC(rg, 3)
+
+			local UIS = game:GetService("UserInputService")
+			win.Active = true
+
+			local dragActive, dragOrigin, dragStartP = false, nil, nil
+			local resizeActive, resizeOrigin, resizeStartSz = false, nil, nil
+
+			tb.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+					dragActive = true; dragOrigin = i.Position; dragStartP = win.Position
+				end
+			end)
+			tb.InputEnded:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+					dragActive = false
+				end
+			end)
+
+			rg.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+					resizeActive = true; resizeOrigin = i.Position; resizeStartSz = win.AbsoluteSize
+				end
+			end)
+			rg.InputEnded:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+					resizeActive = false
+				end
+			end)
+
+			UIS.InputChanged:Connect(function(i)
+				if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then return end
+				if dragActive and dragOrigin and dragStartP then
+					local d = i.Position - dragOrigin
+					win.Position = UDim2.new(dragStartP.X.Scale, dragStartP.X.Offset + d.X, dragStartP.Y.Scale, dragStartP.Y.Offset + d.Y)
+				end
+				if resizeActive and resizeOrigin and resizeStartSz then
+					local d = i.Position - resizeOrigin
+					win.Size = UDim2.new(0, math.clamp(resizeStartSz.X + d.X, 360, 1200), 0, math.clamp(resizeStartSz.Y + d.Y, 260, 900))
+				end
+			end)
 		end
 
 		local popG = pGui:FindFirstChild("PausedRemotesPopup")
