@@ -16,6 +16,7 @@ local localPlayer = Players.LocalPlayer
 local playerGui   = localPlayer:WaitForChild("PlayerGui")
 local rangeSphere = nil
 local rangeVisualizerConn = nil
+local unpackArgs = table.unpack or unpack
 
 -- ========== THEME CONSTANTS ==========
 local Theme = {
@@ -1838,11 +1839,11 @@ rdRunCodeBtn.MouseButton1Click:Connect(function()
 
 	if data.method == "FireServer" and remote and remote:IsA("RemoteEvent") then
 		ok, runErr = pcall(function()
-			remote:FireServer(unpack(args))
+			remote:FireServer(unpackArgs(args))
 		end)
 	elseif data.method == "InvokeServer" and remote and remote:IsA("RemoteFunction") then
 		ok, runErr = pcall(function()
-			remote:InvokeServer(unpack(args))
+			remote:InvokeServer(unpackArgs(args))
 		end)
 	else
 		ok, runErr = false, "Remote is missing or method/type does not match."
@@ -2308,11 +2309,11 @@ runCodeBtn.MouseButton1Click:Connect(function()
 
 	if data.method == "FireServer" and remote and remote:IsA("RemoteEvent") then
 		ok, re = pcall(function()
-			remote:FireServer(unpack(args))
+			remote:FireServer(unpackArgs(args))
 		end)
 	elseif data.method == "InvokeServer" and remote and remote:IsA("RemoteFunction") then
 		ok, re = pcall(function()
-			remote:InvokeServer(unpack(args))
+			remote:InvokeServer(unpackArgs(args))
 		end)
 	else
 		ok, re = false, "Remote is missing or method/type does not match."
