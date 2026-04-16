@@ -2149,7 +2149,7 @@ end
 
 local pausedRemotesPopup = Instance.new("Frame")
 pausedRemotesPopup.Size = UDim2.new(0, 360, 0, 360)
-pausedRemotesPopup.Position = UDim2.new(0, 490, 0, 80)
+pausedRemotesPopup.Position = UDim2.new(0, 900, 0, 80)
 pausedRemotesPopup.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 pausedRemotesPopup.BorderSizePixel = 0
 pausedRemotesPopup.Visible = false
@@ -2211,7 +2211,7 @@ prPad.PaddingRight = UDim.new(0, 6)
 
 local pausedAnimationsPopup = Instance.new("Frame")
 pausedAnimationsPopup.Size = UDim2.new(0, 360, 0, 360)
-pausedAnimationsPopup.Position = UDim2.new(0, 490, 0, 80)
+pausedAnimationsPopup.Position = UDim2.new(0, 900, 0, 460)
 pausedAnimationsPopup.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 pausedAnimationsPopup.BorderSizePixel = 0
 pausedAnimationsPopup.Visible = false
@@ -2399,13 +2399,11 @@ end)
 
 openPausedRemotesBtn.MouseButton1Click:Connect(function()
 	rebuildPausedRemotesPopup()
-	pausedAnimationsPopup.Visible = false
 	pausedRemotesPopup.Visible = true
 end)
 
 openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 	rebuildPausedAnimationsPopup()
-	pausedRemotesPopup.Visible = false
 	pausedAnimationsPopup.Visible = true
 end)
 
