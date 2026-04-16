@@ -2342,6 +2342,14 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 		local Plrs = args[6]
 		local showDetail = args[7]  -- showAnimDetailView function
 
+		local existing = pGui:FindFirstChild("PausedAnimationsPopup")
+		if existing then
+			local existingWin = existing:FindFirstChild("Win")
+			if (not existingWin) or (not existingWin:FindFirstChild("ResizeGrip")) then
+				existing:Destroy()
+			end
+		end
+
 		if not pGui:FindFirstChild("PausedAnimationsPopup") then
 			local UIS = game:GetService("UserInputService")
 			local gui = Instance.new("ScreenGui")
@@ -2383,6 +2391,7 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 			tl.Font = Enum.Font.GothamBold
 			tl.TextSize = 13
 			tl.TextXAlignment = Enum.TextXAlignment.Left
+			tl.Active = true
 
 			local cb = Instance.new("TextButton", tb)
 			cb.Size = UDim2.new(0,26,0,20)
@@ -2423,6 +2432,7 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 			rg.TextSize = 11
 			rg.BorderSizePixel = 0
 			rg.AutoButtonColor = false
+			rg.ZIndex = 10
 			mkC(rg, 3)
 
 			local dragging = false
@@ -2435,7 +2445,7 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 			local resizeStart = nil
 			local startSize = nil
 
-			tb.InputBegan:Connect(function(input)
+			local function beginDrag(input)
 				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 					dragging = true
 					dragStart = input.Position
@@ -2446,13 +2456,21 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 						end
 					end)
 				end
-			end)
+			end
 
-			tb.InputChanged:Connect(function(input)
+			tb.InputBegan:Connect(beginDrag)
+			tl.InputBegan:Connect(beginDrag)
+			tf.InputBegan:Connect(beginDrag)
+
+			local function trackDragInput(input)
 				if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
 					dragInput = input
 				end
-			end)
+			end
+
+			tb.InputChanged:Connect(trackDragInput)
+			tl.InputChanged:Connect(trackDragInput)
+			tf.InputChanged:Connect(trackDragInput)
 
 			rg.InputBegan:Connect(function(input)
 				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
