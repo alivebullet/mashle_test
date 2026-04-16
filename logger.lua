@@ -262,7 +262,7 @@ titleBar.Parent           = mainFrame
 mkCorner(titleBar, 8)
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size               = UDim2.new(1, -220, 1, 0)
+titleLabel.Size               = UDim2.new(1, -250, 1, 0)
 titleLabel.Position           = UDim2.new(0, 12, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text               = "Combat & Remote Detector"
@@ -274,7 +274,7 @@ titleLabel.Parent             = titleBar
 
 local settingsBtn = Instance.new("TextButton")
 settingsBtn.Size             = UDim2.new(0, 24, 0, 22)
-settingsBtn.Position         = UDim2.new(0, 206, 0, 5)
+settingsBtn.Position         = UDim2.new(1, -245, 0, 5)
 settingsBtn.BackgroundColor3 = Theme.ButtonDefault
 settingsBtn.Text             = "⚙"
 settingsBtn.TextColor3       = Theme.TextPrimary
