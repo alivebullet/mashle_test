@@ -4,7 +4,7 @@
 
 local __modules = {}
 
-__modules["modules\theme"] = function(require)
+__modules["modules/theme"] = function(require)
 local Theme = {
     Background      = Color3.fromRGB(25, 25, 30),
     TitleBar        = Color3.fromRGB(35, 35, 45),
@@ -29,7 +29,7 @@ return Theme
 
 end
 
-__modules["modules\animation_filters"] = function(require)
+__modules["modules/animation_filters"] = function(require)
 local IGNORED_NAME_PATTERNS = {
     "run", "walk", "idle", "jump", "fall", "climb", "swim", "sit", "wave", "point",
     "cheer", "laugh", "dance", "pose", "stand", "mood", "emote", "toollunge", "toolhold",
@@ -89,7 +89,7 @@ return {
 
 end
 
-__modules["modules\remote_helpers"] = function(require)
+__modules["modules/remote_helpers"] = function(require)
 local function getRemotePath(remote)
     if not remote then
         return "nil"
@@ -265,7 +265,7 @@ return {
 
 end
 
-__modules["modules\ui_helpers"] = function(require)
+__modules["modules/ui_helpers"] = function(require)
 local function mkCorner(parent, r)
     local c = Instance.new("UICorner", parent)
     c.CornerRadius = UDim.new(0, r or 6)
@@ -306,10 +306,10 @@ local rangeVisualizerConn = nil
 local unpackArgs = table.unpack or unpack
 
 -- ========== MODULES ==========
-local Theme = require("modules\theme")
-local AnimationFilters = require("modules\animation_filters")
-local RemoteHelpers = require("modules\remote_helpers")
-local UIHelpers = require("modules\ui_helpers")
+local Theme = require("modules/theme")
+local AnimationFilters = require("modules/animation_filters")
+local RemoteHelpers = require("modules/remote_helpers")
+local UIHelpers = require("modules/ui_helpers")
 
 local extractIdNumber = AnimationFilters.extractIdNumber
 local shouldLogAnimation = AnimationFilters.shouldLogAnimation
