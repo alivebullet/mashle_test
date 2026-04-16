@@ -1,0 +1,1248 @@
+-- AnimationDetectorUI.lua
+-- LocalScript — place in StarterPlayerScripts
+
+local Players          = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local DETECTION_RADIUS      = 100
+local MAX_LOG_ENTRIES       = 100
+local MIN_WIDTH, MIN_HEIGHT = 280, 200
+local MAX_WIDTH, MAX_HEIGHT = 1200, 900
+
+local localPlayer = Players.LocalPlayer
+local playerGui   = localPlayer:WaitForChild("PlayerGui")
+
+-- ========== FILTER CONFIG ==========
+
+local IGNORED_NAME_PATTERNS = {
+	"run","walk","idle","jump","fall","climb","swim","sit","wave","point",
+	"cheer","laugh","dance","pose","stand","mood","emote","toollunge","toolhold",
+	"toolnone","toolslash",
+}
+local IGNORED_IDS = {
+	["507767714"]=true,["507767968"]=true,["507766388"]=true,["507766666"]=true,
+	["507765000"]=true,["507765644"]=true,["507767715"]=true,["507768375"]=true,
+	["507768716"]=true,["180426354"]=true,["180435571"]=true,["180435792"]=true,
+	["180436334"]=true,["180436148"]=true,["180425148"]=true,
+}
+local COMBAT_KEYWORDS = {
+	"attack","swing","slash","stab","punch","kick","hit","combo","m1","heavy",
+	"light","block","parry","dodge","dash","ability","skill","cast","shoot","fire",
+	"reload","sword","fight","strike","uppercut","jab","hook","throw","grab","slam",
+	"smash","critical","ult","special","weapon","melee","combat","spell","magic",
+}
+
+local function lower(s) return string.lower(s or "") end
+local function matchesAny(str, patterns)
+	str = lower(str)
+	for _, p in ipairs(patterns) do
+		if string.find(str, p, 1, true) then return true end
+	end
+	return false
+end
+local function extractIdNumber(animId) return string.match(animId or "", "%d+") end
+local function shouldLogAnimation(animName, animId)
+	local idNum = extractIdNumber(animId)
+	if idNum and IGNORED_IDS[idNum] then return false end
+	if matchesAny(animName, COMBAT_KEYWORDS) then return true end
+	if matchesAny(animName, IGNORED_NAME_PATTERNS) then return false end
+	return true
+end
+
+-- ========== REMOTE HELPERS ==========
+
+local function getRemotePath(remote)
+	if not remote then return "nil" end
+	local ok, result = pcall(function()
+		local parts = {}
+		local c = remote
+		while c and c ~= game do
+			table.insert(parts, 1, c.Name)
+			c = c.Parent
+		end
+		table.insert(parts, 1, "game")
+		return table.concat(parts, ".")
+	end)
+	return ok and result or tostring(remote)
+end
+
+-- Compact serializer used for log entry previews
+local function serializeArg(v, depth)
+	depth = depth or 0
+	local t = typeof(v)
+	if     t == "string"   then return string.format("%q", v)
+	elseif t == "number"   then return tostring(v)
+	elseif t == "boolean"  then return tostring(v)
+	elseif t == "nil"      then return "nil"
+	elseif t == "Instance" then
+		local ok, p = pcall(getRemotePath, v); return ok and p or "Instance"
+	elseif t == "Vector3"  then return ("Vector3.new(%g,%g,%g)"):format(v.X, v.Y, v.Z)
+	elseif t == "Vector2"  then return ("Vector2.new(%g,%g)"):format(v.X, v.Y)
+	elseif t == "CFrame"   then
+		local p = v.Position; return ("CFrame.new(%g,%g,%g)"):format(p.X, p.Y, p.Z)
+	elseif t == "table" then
+		if depth >= 2 then return "{...}" end
+		local items, n = {}, 0
+		for k, val in pairs(v) do
+			n += 1; if n > 6 then table.insert(items, "..."); break end
+			if type(k) == "number" then
+				table.insert(items, serializeArg(val, depth+1))
+			else
+				table.insert(items, tostring(k).."="..serializeArg(val, depth+1))
+			end
+		end
+		return "{"..table.concat(items, ", ").."}"
+	else return tostring(v) end
+end
+
+-- Verbose/indented serializer used inside the remote detail panel
+local function deepSerializeArg(v, depth, indent)
+	depth  = depth  or 0
+	indent = indent or ""
+	local t = typeof(v)
+	if     t == "string"   then return string.format("%q", v)
+	elseif t == "number"   then return tostring(v)
+	elseif t == "boolean"  then return tostring(v)
+	elseif t == "nil"      then return "nil"
+	elseif t == "Instance" then
+		local ok, p = pcall(getRemotePath, v); return ok and p or tostring(v)
+	elseif t == "Vector3"  then
+		return ("Vector3.new(%g, %g, %g)"):format(v.X, v.Y, v.Z)
+	elseif t == "Vector2"  then
+		return ("Vector2.new(%g, %g)"):format(v.X, v.Y)
+	elseif t == "CFrame"   then
+		local rx, ry, rz = v:ToEulerAnglesXYZ()
+		local p = v.Position
+		return ("CFrame.new(%g, %g, %g)  -- rot(%.1f, %.1f, %.1f) deg"):format(
+			p.X, p.Y, p.Z, math.deg(rx), math.deg(ry), math.deg(rz))
+	elseif t == "Color3"   then
+		return ("Color3.fromRGB(%d, %d, %d)"):format(v.R*255, v.G*255, v.B*255)
+	elseif t == "UDim2"    then
+		return ("UDim2.new(%g, %g, %g, %g)"):format(v.X.Scale, v.X.Offset, v.Y.Scale, v.Y.Offset)
+	elseif t == "EnumItem" then
+		return tostring(v)
+	elseif t == "table" then
+		if depth >= 4 then return "{...}" end
+		local ni = indent .. "  "
+		local items = {}
+		local isArr = (#v > 0)
+		for k, val in pairs(v) do
+			local entry
+			if type(k) == "number" and isArr then
+				entry = ni .. deepSerializeArg(val, depth+1, ni)
+			else
+				entry = ni .. "[" .. tostring(k) .. "] = " .. deepSerializeArg(val, depth+1, ni)
+			end
+			table.insert(items, entry)
+		end
+		if #items == 0 then return "{}" end
+		return "{\n" .. table.concat(items, ",\n") .. "\n" .. indent .. "}"
+	else
+		return "(" .. t .. ") " .. tostring(v)
+	end
+end
+
+local function serializeArgs(args)
+	local parts = {}
+	for _, v in ipairs(args) do table.insert(parts, serializeArg(v)) end
+	return table.concat(parts, ", ")
+end
+
+local function buildCode(remote, method, argsStr)
+	local path = getRemotePath(remote)
+	return argsStr ~= ""
+		and ("%s:%s(%s)"):format(path, method, argsStr)
+		or  ("%s:%s()"):format(path, method)
+end
+
+local function tryClipboard(text)
+	if setclipboard then pcall(setclipboard, text); return true end
+	if Clipboard and Clipboard.set then pcall(Clipboard.set, text); return true end
+	return false
+end
+
+-- ========== UI HELPERS ==========
+
+local function mkCorner(parent, r)
+	local c = Instance.new("UICorner", parent)
+	c.CornerRadius = UDim.new(0, r or 6)
+end
+local function mkStroke(parent, color, thick)
+	local s = Instance.new("UIStroke", parent)
+	s.Color = color or Color3.fromRGB(60, 60, 70)
+	s.Thickness = thick or 1
+end
+
+-- ========== SCREEN GUI ==========
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name           = "AnimationDetectorUI"
+screenGui.ResetOnSpawn   = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent         = playerGui
+
+-- Reopen button
+local reopenBtn = Instance.new("TextButton")
+reopenBtn.Size             = UDim2.new(0, 130, 0, 32)
+reopenBtn.Position         = UDim2.new(0, 20, 0, 80)
+reopenBtn.BackgroundColor3 = Color3.fromRGB(45, 35, 55)
+reopenBtn.Text             = "📋 Show Detector"
+reopenBtn.TextColor3       = Color3.fromRGB(230, 200, 255)
+reopenBtn.Font             = Enum.Font.GothamBold
+reopenBtn.TextSize         = 12
+reopenBtn.BorderSizePixel  = 0
+reopenBtn.Visible          = false
+reopenBtn.Parent           = screenGui
+mkCorner(reopenBtn, 6); mkStroke(reopenBtn, Color3.fromRGB(100, 80, 130))
+
+-- ===== Main Frame =====
+local mainFrame = Instance.new("Frame")
+mainFrame.Name             = "MainFrame"
+mainFrame.Size             = UDim2.new(0, 450, 0, 360)
+mainFrame.Position         = UDim2.new(0, 20, 0, 80)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+mainFrame.BorderSizePixel  = 0
+mainFrame.Active           = true
+mainFrame.Parent           = screenGui
+mkCorner(mainFrame, 8); mkStroke(mainFrame, Color3.fromRGB(60, 60, 70))
+
+-- ===== Title Bar =====
+local titleBar = Instance.new("Frame")
+titleBar.Size             = UDim2.new(1, 0, 0, 32)
+titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+titleBar.BorderSizePixel  = 0
+titleBar.Active           = true
+titleBar.Parent           = mainFrame
+mkCorner(titleBar, 8)
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size               = UDim2.new(1, -185, 1, 0)
+titleLabel.Position           = UDim2.new(0, 12, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text               = "Combat & Remote Detector"
+titleLabel.TextColor3         = Color3.fromRGB(255, 120, 120)
+titleLabel.TextXAlignment     = Enum.TextXAlignment.Left
+titleLabel.Font               = Enum.Font.GothamBold
+titleLabel.TextSize           = 13
+titleLabel.Parent             = titleBar
+
+local strictBtn = Instance.new("TextButton")
+strictBtn.Size             = UDim2.new(0, 60, 0, 22)
+strictBtn.Position         = UDim2.new(1, -170, 0, 5)
+strictBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 85)
+strictBtn.Text             = "Strict: OFF"
+strictBtn.TextColor3       = Color3.fromRGB(230, 230, 240)
+strictBtn.Font             = Enum.Font.Gotham
+strictBtn.TextSize         = 10
+strictBtn.BorderSizePixel  = 0
+strictBtn.Parent           = titleBar
+mkCorner(strictBtn, 4)
+
+local clearBtn = Instance.new("TextButton")
+clearBtn.Size             = UDim2.new(0, 50, 0, 22)
+clearBtn.Position         = UDim2.new(1, -102, 0, 5)
+clearBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 85)
+clearBtn.Text             = "Clear"
+clearBtn.TextColor3       = Color3.fromRGB(230, 230, 240)
+clearBtn.Font             = Enum.Font.Gotham
+clearBtn.TextSize         = 11
+clearBtn.BorderSizePixel  = 0
+clearBtn.Parent           = titleBar
+mkCorner(clearBtn, 4)
+
+local mainCloseBtn = Instance.new("TextButton")
+mainCloseBtn.Size             = UDim2.new(0, 24, 0, 22)
+mainCloseBtn.Position         = UDim2.new(1, -30, 0, 5)
+mainCloseBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+mainCloseBtn.Text             = "X"
+mainCloseBtn.TextColor3       = Color3.fromRGB(240, 240, 240)
+mainCloseBtn.Font             = Enum.Font.GothamBold
+mainCloseBtn.TextSize         = 12
+mainCloseBtn.BorderSizePixel  = 0
+mainCloseBtn.Parent           = titleBar
+mkCorner(mainCloseBtn, 4)
+mainCloseBtn.MouseEnter:Connect(function() mainCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
+mainCloseBtn.MouseLeave:Connect(function() mainCloseBtn.BackgroundColor3 = Color3.fromRGB(180,60,60) end)
+mainCloseBtn.MouseButton1Click:Connect(function()
+	mainFrame.Visible = false; reopenBtn.Visible = true
+end)
+reopenBtn.MouseButton1Click:Connect(function()
+	mainFrame.Visible = true; reopenBtn.Visible = false
+end)
+
+-- ===== Tab Bar =====
+local tabBar = Instance.new("Frame")
+tabBar.Size             = UDim2.new(1, 0, 0, 28)
+tabBar.Position         = UDim2.new(0, 0, 0, 32)
+tabBar.BackgroundColor3 = Color3.fromRGB(18, 18, 23)
+tabBar.BorderSizePixel  = 0
+tabBar.Parent           = mainFrame
+
+local animTabBtn = Instance.new("TextButton")
+animTabBtn.Size             = UDim2.new(0.5, -4, 1, -6)
+animTabBtn.Position         = UDim2.new(0, 4, 0, 3)
+animTabBtn.BackgroundColor3 = Color3.fromRGB(55, 45, 72)
+animTabBtn.Text             = "🎬  Animations"
+animTabBtn.TextColor3       = Color3.fromRGB(230, 200, 255)
+animTabBtn.Font             = Enum.Font.GothamBold
+animTabBtn.TextSize         = 11
+animTabBtn.BorderSizePixel  = 0
+animTabBtn.Parent           = tabBar
+mkCorner(animTabBtn, 4)
+
+local remoteTabBtn = Instance.new("TextButton")
+remoteTabBtn.Size             = UDim2.new(0.5, -4, 1, -6)
+remoteTabBtn.Position         = UDim2.new(0.5, 0, 0, 3)
+remoteTabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+remoteTabBtn.Text             = "📡  Remotes"
+remoteTabBtn.TextColor3       = Color3.fromRGB(160, 160, 175)
+remoteTabBtn.Font             = Enum.Font.Gotham
+remoteTabBtn.TextSize         = 11
+remoteTabBtn.BorderSizePixel  = 0
+remoteTabBtn.Parent           = tabBar
+mkCorner(remoteTabBtn, 4)
+
+-- ===== Status Label =====
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size               = UDim2.new(1, -16, 0, 18)
+statusLabel.Position           = UDim2.new(0, 8, 0, 62)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text               = "Detected: 0  |  Filtered: 0"
+statusLabel.TextColor3         = Color3.fromRGB(160, 200, 255)
+statusLabel.TextXAlignment     = Enum.TextXAlignment.Left
+statusLabel.Font               = Enum.Font.Gotham
+statusLabel.TextSize           = 11
+statusLabel.Parent             = mainFrame
+
+-- ===== ANIMATIONS Content =====
+local animContent = Instance.new("Frame")
+animContent.Size              = UDim2.new(1, 0, 1, -82)
+animContent.Position          = UDim2.new(0, 0, 0, 82)
+animContent.BackgroundTransparency = 1
+animContent.Visible           = true
+animContent.Parent            = mainFrame
+
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size               = UDim2.new(1, -16, 1, -8)
+scrollFrame.Position           = UDim2.new(0, 8, 0, 0)
+scrollFrame.BackgroundColor3   = Color3.fromRGB(15, 15, 20)
+scrollFrame.BorderSizePixel    = 0
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120)
+scrollFrame.CanvasSize         = UDim2.new(0, 0, 0, 0)
+scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrollFrame.Parent             = animContent
+mkCorner(scrollFrame, 4)
+Instance.new("UIListLayout", scrollFrame).SortOrder = Enum.SortOrder.LayoutOrder
+local sfPad = Instance.new("UIPadding", scrollFrame)
+sfPad.PaddingTop = UDim.new(0,4); sfPad.PaddingLeft = UDim.new(0,6); sfPad.PaddingRight = UDim.new(0,6)
+do local ll = scrollFrame:FindFirstChildOfClass("UIListLayout"); ll.Padding = UDim.new(0,2) end
+
+-- ===== REMOTES Content =====
+local remoteContent = Instance.new("Frame")
+remoteContent.Size              = UDim2.new(1, 0, 1, -82)
+remoteContent.Position          = UDim2.new(0, 0, 0, 82)
+remoteContent.BackgroundTransparency = 1
+remoteContent.Visible           = false
+remoteContent.Parent            = mainFrame
+
+local remoteScroll = Instance.new("ScrollingFrame")
+remoteScroll.Size               = UDim2.new(1, -16, 1, -46)
+remoteScroll.Position           = UDim2.new(0, 8, 0, 0)
+remoteScroll.BackgroundColor3   = Color3.fromRGB(15, 15, 20)
+remoteScroll.BorderSizePixel    = 0
+remoteScroll.ScrollBarThickness = 6
+remoteScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120)
+remoteScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
+remoteScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+remoteScroll.Parent             = remoteContent
+mkCorner(remoteScroll, 4)
+local remLL = Instance.new("UIListLayout", remoteScroll)
+remLL.SortOrder = Enum.SortOrder.LayoutOrder; remLL.Padding = UDim.new(0, 2)
+local remPad = Instance.new("UIPadding", remoteScroll)
+remPad.PaddingTop = UDim.new(0,4); remPad.PaddingLeft = UDim.new(0,6); remPad.PaddingRight = UDim.new(0,6)
+
+-- ===== Remote Action Bar =====
+local remoteActionBar = Instance.new("Frame")
+remoteActionBar.Size             = UDim2.new(1, -16, 0, 38)
+remoteActionBar.Position         = UDim2.new(0, 8, 1, -42)
+remoteActionBar.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
+remoteActionBar.BorderSizePixel  = 0
+remoteActionBar.Parent           = remoteContent
+mkCorner(remoteActionBar, 5); mkStroke(remoteActionBar, Color3.fromRGB(50, 50, 65))
+
+local ACTION_COLORS = {
+	Color3.fromRGB(48, 88, 150), Color3.fromRGB(42, 112, 72),
+	Color3.fromRGB(68, 110, 45), Color3.fromRGB(130, 48, 48),
+}
+local ACTION_LABELS = { "Copy Code", "Copy Path", "Run Code", "Clear" }
+local actionBtns = {}
+for i = 1, 4 do
+	local btn = Instance.new("TextButton")
+	btn.Size             = UDim2.new(0.25, -5, 1, -10)
+	btn.Position         = UDim2.new((i-1)*0.25, (i==1 and 5 or 3), 0, 5)
+	btn.BackgroundColor3 = ACTION_COLORS[i]
+	btn.Text             = ACTION_LABELS[i]
+	btn.TextColor3       = Color3.fromRGB(235, 235, 240)
+	btn.Font             = Enum.Font.Gotham; btn.TextSize = 10
+	btn.BorderSizePixel  = 0; btn.AutoButtonColor = false
+	btn.Parent           = remoteActionBar
+	mkCorner(btn, 4)
+	btn.MouseEnter:Connect(function() btn.BackgroundTransparency = 0.25 end)
+	btn.MouseLeave:Connect(function() btn.BackgroundTransparency = 0    end)
+	actionBtns[i] = btn
+end
+local copyCodeBtn, copyPathBtn, runCodeBtn, clearRemBtn =
+	actionBtns[1], actionBtns[2], actionBtns[3], actionBtns[4]
+
+-- ===== Resize grip (main) =====
+local resizeGrip = Instance.new("TextButton")
+resizeGrip.Size                   = UDim2.new(0, 16, 0, 16)
+resizeGrip.Position               = UDim2.new(1, -18, 1, -18)
+resizeGrip.BackgroundColor3       = Color3.fromRGB(100, 100, 120)
+resizeGrip.BackgroundTransparency = 0.4
+resizeGrip.Text                   = "⇲"
+resizeGrip.TextColor3             = Color3.fromRGB(230, 230, 240)
+resizeGrip.Font                   = Enum.Font.GothamBold; resizeGrip.TextSize = 12
+resizeGrip.BorderSizePixel        = 0; resizeGrip.AutoButtonColor = false
+resizeGrip.Parent                 = mainFrame
+mkCorner(resizeGrip, 3)
+resizeGrip.MouseEnter:Connect(function() resizeGrip.BackgroundTransparency = 0   end)
+resizeGrip.MouseLeave:Connect(function() resizeGrip.BackgroundTransparency = 0.4 end)
+
+-- ========== ANIMATION DETAIL PANEL ==========
+
+local detailFrame = Instance.new("Frame")
+detailFrame.Size             = UDim2.new(0, 360, 0, 420)
+detailFrame.Position         = UDim2.new(0, 490, 0, 80)
+detailFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+detailFrame.BorderSizePixel  = 0
+detailFrame.Visible          = false
+detailFrame.Active           = true
+detailFrame.Parent           = screenGui
+mkCorner(detailFrame, 8); mkStroke(detailFrame, Color3.fromRGB(80, 80, 100))
+
+local detailTitleBar = Instance.new("Frame")
+detailTitleBar.Size             = UDim2.new(1, 0, 0, 32)
+detailTitleBar.BackgroundColor3 = Color3.fromRGB(45, 35, 55)
+detailTitleBar.BorderSizePixel  = 0; detailTitleBar.Active = true
+detailTitleBar.Parent           = detailFrame
+mkCorner(detailTitleBar, 8)
+
+local detailTitleLabel = Instance.new("TextLabel")
+detailTitleLabel.Size               = UDim2.new(1, -40, 1, 0)
+detailTitleLabel.Position           = UDim2.new(0, 12, 0, 0)
+detailTitleLabel.BackgroundTransparency = 1
+detailTitleLabel.Text               = "Animation Details"
+detailTitleLabel.TextColor3         = Color3.fromRGB(230, 200, 255)
+detailTitleLabel.TextXAlignment     = Enum.TextXAlignment.Left
+detailTitleLabel.Font               = Enum.Font.GothamBold; detailTitleLabel.TextSize = 13
+detailTitleLabel.Parent             = detailTitleBar
+
+local animCloseBtn = Instance.new("TextButton")
+animCloseBtn.Size             = UDim2.new(0, 24, 0, 22)
+animCloseBtn.Position         = UDim2.new(1, -30, 0, 5)
+animCloseBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+animCloseBtn.Text             = "X"; animCloseBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
+animCloseBtn.Font             = Enum.Font.GothamBold; animCloseBtn.TextSize = 12
+animCloseBtn.BorderSizePixel  = 0; animCloseBtn.Parent = detailTitleBar
+mkCorner(animCloseBtn, 4)
+animCloseBtn.MouseEnter:Connect(function() animCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
+animCloseBtn.MouseLeave:Connect(function() animCloseBtn.BackgroundColor3 = Color3.fromRGB(180,60,60) end)
+animCloseBtn.MouseButton1Click:Connect(function() detailFrame.Visible = false end)
+
+local animDetailScroll = Instance.new("ScrollingFrame")
+animDetailScroll.Size               = UDim2.new(1, -16, 1, -82)
+animDetailScroll.Position           = UDim2.new(0, 8, 0, 40)
+animDetailScroll.BackgroundColor3   = Color3.fromRGB(15, 15, 20)
+animDetailScroll.BorderSizePixel    = 0
+animDetailScroll.ScrollBarThickness = 6
+animDetailScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120)
+animDetailScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
+animDetailScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+animDetailScroll.Parent             = detailFrame
+mkCorner(animDetailScroll, 4)
+local adPad = Instance.new("UIPadding", animDetailScroll)
+adPad.PaddingTop = UDim.new(0,6); adPad.PaddingBottom = UDim.new(0,6)
+
+local animDetailText = Instance.new("TextLabel")
+animDetailText.Size               = UDim2.new(1, -16, 0, 0)
+animDetailText.Position           = UDim2.new(0, 8, 0, 0)
+animDetailText.AutomaticSize      = Enum.AutomaticSize.Y
+animDetailText.BackgroundTransparency = 1
+animDetailText.Text               = ""
+animDetailText.TextColor3         = Color3.fromRGB(220, 220, 230)
+animDetailText.TextXAlignment     = Enum.TextXAlignment.Left
+animDetailText.TextYAlignment     = Enum.TextYAlignment.Top
+animDetailText.Font               = Enum.Font.Code; animDetailText.TextSize = 11
+animDetailText.TextWrapped        = true; animDetailText.RichText = true
+animDetailText.Parent             = animDetailScroll
+
+local copyIdBtn = Instance.new("TextButton")
+copyIdBtn.Size             = UDim2.new(0.5, -12, 0, 28)
+copyIdBtn.Position         = UDim2.new(0, 8, 1, -36)
+copyIdBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 120)
+copyIdBtn.Text             = "Print ID to Console"
+copyIdBtn.TextColor3       = Color3.fromRGB(240, 240, 240)
+copyIdBtn.Font             = Enum.Font.Gotham; copyIdBtn.TextSize = 11
+copyIdBtn.BorderSizePixel  = 0; copyIdBtn.Parent = detailFrame
+mkCorner(copyIdBtn, 4)
+
+local ignoreBtn = Instance.new("TextButton")
+ignoreBtn.Size             = UDim2.new(0.5, -12, 0, 28)
+ignoreBtn.Position         = UDim2.new(0.5, 4, 1, -36)
+ignoreBtn.BackgroundColor3 = Color3.fromRGB(120, 80, 60)
+ignoreBtn.Text             = "Add ID to Ignore List"
+ignoreBtn.TextColor3       = Color3.fromRGB(240, 240, 240)
+ignoreBtn.Font             = Enum.Font.Gotham; ignoreBtn.TextSize = 11
+ignoreBtn.BorderSizePixel  = 0; ignoreBtn.Parent = detailFrame
+mkCorner(ignoreBtn, 4)
+
+local animDetailResizeGrip = Instance.new("TextButton")
+animDetailResizeGrip.Size                   = UDim2.new(0, 16, 0, 16)
+animDetailResizeGrip.Position               = UDim2.new(1, -18, 1, -18)
+animDetailResizeGrip.BackgroundColor3       = Color3.fromRGB(100, 100, 120)
+animDetailResizeGrip.BackgroundTransparency = 0.4
+animDetailResizeGrip.Text                   = "⇲"
+animDetailResizeGrip.TextColor3             = Color3.fromRGB(230, 230, 240)
+animDetailResizeGrip.Font                   = Enum.Font.GothamBold; animDetailResizeGrip.TextSize = 12
+animDetailResizeGrip.BorderSizePixel        = 0; animDetailResizeGrip.AutoButtonColor = false
+animDetailResizeGrip.Parent                 = detailFrame
+mkCorner(animDetailResizeGrip, 3)
+animDetailResizeGrip.MouseEnter:Connect(function() animDetailResizeGrip.BackgroundTransparency = 0   end)
+animDetailResizeGrip.MouseLeave:Connect(function() animDetailResizeGrip.BackgroundTransparency = 0.4 end)
+
+-- ========== REMOTE DETAIL PANEL ==========
+
+local remDetailFrame = Instance.new("Frame")
+remDetailFrame.Name             = "RemoteDetailFrame"
+remDetailFrame.Size             = UDim2.new(0, 390, 0, 480)
+remDetailFrame.Position         = UDim2.new(0, 490, 0, 80)
+remDetailFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+remDetailFrame.BorderSizePixel  = 0
+remDetailFrame.Visible          = false
+remDetailFrame.Active           = true
+remDetailFrame.Parent           = screenGui
+mkCorner(remDetailFrame, 8)
+mkStroke(remDetailFrame, Color3.fromRGB(55, 80, 120))
+
+-- Title bar
+local rdTitleBar = Instance.new("Frame")
+rdTitleBar.Size             = UDim2.new(1, 0, 0, 32)
+rdTitleBar.BackgroundColor3 = Color3.fromRGB(28, 38, 58)
+rdTitleBar.BorderSizePixel  = 0; rdTitleBar.Active = true
+rdTitleBar.Parent           = remDetailFrame
+mkCorner(rdTitleBar, 8)
+
+local rdTitleLabel = Instance.new("TextLabel")
+rdTitleLabel.Size               = UDim2.new(1, -44, 1, 0)
+rdTitleLabel.Position           = UDim2.new(0, 12, 0, 0)
+rdTitleLabel.BackgroundTransparency = 1
+rdTitleLabel.Text               = "📡  Remote Details"
+rdTitleLabel.TextColor3         = Color3.fromRGB(150, 205, 255)
+rdTitleLabel.TextXAlignment     = Enum.TextXAlignment.Left
+rdTitleLabel.Font               = Enum.Font.GothamBold; rdTitleLabel.TextSize = 13
+rdTitleLabel.TextTruncate       = Enum.TextTruncate.AtEnd
+rdTitleLabel.Parent             = rdTitleBar
+
+local rdCloseBtn = Instance.new("TextButton")
+rdCloseBtn.Size             = UDim2.new(0, 24, 0, 22)
+rdCloseBtn.Position         = UDim2.new(1, -30, 0, 5)
+rdCloseBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+rdCloseBtn.Text             = "X"; rdCloseBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
+rdCloseBtn.Font             = Enum.Font.GothamBold; rdCloseBtn.TextSize = 12
+rdCloseBtn.BorderSizePixel  = 0; rdCloseBtn.Parent = rdTitleBar
+mkCorner(rdCloseBtn, 4)
+rdCloseBtn.MouseEnter:Connect(function() rdCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
+rdCloseBtn.MouseLeave:Connect(function() rdCloseBtn.BackgroundColor3 = Color3.fromRGB(180,60,60) end)
+rdCloseBtn.MouseButton1Click:Connect(function() remDetailFrame.Visible = false end)
+
+-- Scrollable content area
+local rdScroll = Instance.new("ScrollingFrame")
+rdScroll.Size               = UDim2.new(1, -16, 1, -90)
+rdScroll.Position           = UDim2.new(0, 8, 0, 40)
+rdScroll.BackgroundColor3   = Color3.fromRGB(12, 13, 18)
+rdScroll.BorderSizePixel    = 0
+rdScroll.ScrollBarThickness = 6
+rdScroll.ScrollBarImageColor3 = Color3.fromRGB(70, 110, 160)
+rdScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
+rdScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+rdScroll.Parent             = remDetailFrame
+mkCorner(rdScroll, 4)
+local rdPad = Instance.new("UIPadding", rdScroll)
+rdPad.PaddingTop = UDim.new(0,6); rdPad.PaddingBottom = UDim.new(0,8)
+rdPad.PaddingLeft = UDim.new(0,8); rdPad.PaddingRight = UDim.new(0,6)
+
+local rdBodyText = Instance.new("TextLabel")
+rdBodyText.Size               = UDim2.new(1, 0, 0, 0)
+rdBodyText.AutomaticSize      = Enum.AutomaticSize.Y
+rdBodyText.BackgroundTransparency = 1
+rdBodyText.Text               = ""
+rdBodyText.TextColor3         = Color3.fromRGB(210, 220, 235)
+rdBodyText.TextXAlignment     = Enum.TextXAlignment.Left
+rdBodyText.TextYAlignment     = Enum.TextYAlignment.Top
+rdBodyText.Font               = Enum.Font.Code; rdBodyText.TextSize = 11
+rdBodyText.TextWrapped        = true; rdBodyText.RichText = true
+rdBodyText.Parent             = rdScroll
+
+-- Bottom action bar on the remote detail panel
+local rdBtnBar = Instance.new("Frame")
+rdBtnBar.Size             = UDim2.new(1, -16, 0, 38)
+rdBtnBar.Position         = UDim2.new(0, 8, 1, -44)
+rdBtnBar.BackgroundColor3 = Color3.fromRGB(18, 24, 36)
+rdBtnBar.BorderSizePixel  = 0; rdBtnBar.Parent = remDetailFrame
+mkCorner(rdBtnBar, 5); mkStroke(rdBtnBar, Color3.fromRGB(45, 70, 110))
+
+local function makeRdBtn(label, color, idx, total)
+	local w = 1 / total
+	local btn = Instance.new("TextButton")
+	btn.Size             = UDim2.new(w, -5, 1, -10)
+	btn.Position         = UDim2.new(w*(idx-1), (idx==1 and 5 or 3), 0, 5)
+	btn.BackgroundColor3 = color
+	btn.Text             = label
+	btn.TextColor3       = Color3.fromRGB(235, 235, 240)
+	btn.Font             = Enum.Font.Gotham; btn.TextSize = 10
+	btn.BorderSizePixel  = 0; btn.AutoButtonColor = false
+	btn.Parent           = rdBtnBar
+	mkCorner(btn, 4)
+	btn.MouseEnter:Connect(function() btn.BackgroundTransparency = 0.25 end)
+	btn.MouseLeave:Connect(function() btn.BackgroundTransparency = 0    end)
+	return btn
+end
+
+local rdCopyCodeBtn = makeRdBtn("📋 Copy Code", Color3.fromRGB(48, 88, 150), 1, 3)
+local rdCopyPathBtn = makeRdBtn("🔗 Copy Path", Color3.fromRGB(40, 105, 70), 2, 3)
+local rdRunCodeBtn  = makeRdBtn("▶ Run Code",  Color3.fromRGB(65, 105, 40), 3, 3)
+
+-- Resize grip for remote detail panel
+local rdResizeGrip = Instance.new("TextButton")
+rdResizeGrip.Size                   = UDim2.new(0, 16, 0, 16)
+rdResizeGrip.Position               = UDim2.new(1, -18, 1, -18)
+rdResizeGrip.BackgroundColor3       = Color3.fromRGB(70, 110, 160)
+rdResizeGrip.BackgroundTransparency = 0.4
+rdResizeGrip.Text                   = "⇲"
+rdResizeGrip.TextColor3             = Color3.fromRGB(200, 220, 245)
+rdResizeGrip.Font                   = Enum.Font.GothamBold; rdResizeGrip.TextSize = 12
+rdResizeGrip.BorderSizePixel        = 0; rdResizeGrip.AutoButtonColor = false
+rdResizeGrip.Parent                 = remDetailFrame
+mkCorner(rdResizeGrip, 3)
+rdResizeGrip.MouseEnter:Connect(function() rdResizeGrip.BackgroundTransparency = 0   end)
+rdResizeGrip.MouseLeave:Connect(function() rdResizeGrip.BackgroundTransparency = 0.4 end)
+
+-- ========== DRAG / RESIZE ==========
+
+-- Generic drag/resize using table-wrapped booleans for shared closure state
+local function bindDrag(bar, frame)
+	local active, origin, startP = false, nil, nil
+	bar.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1
+			or i.UserInputType == Enum.UserInputType.Touch then
+			active = true; origin = i.Position; startP = frame.Position
+		end
+	end)
+	bar.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1
+			or i.UserInputType == Enum.UserInputType.Touch then
+			active = false
+		end
+	end)
+	return function(inputPos)
+		if active and origin and startP then
+			local d = inputPos - origin
+			frame.Position = UDim2.new(startP.X.Scale, startP.X.Offset+d.X, startP.Y.Scale, startP.Y.Offset+d.Y)
+		end
+	end
+end
+
+local function bindResize(grip, frame)
+	local active, origin, startSz = false, nil, nil
+	grip.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1
+			or i.UserInputType == Enum.UserInputType.Touch then
+			active = true; origin = i.Position; startSz = frame.AbsoluteSize
+		end
+	end)
+	grip.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1
+			or i.UserInputType == Enum.UserInputType.Touch then
+			active = false
+		end
+	end)
+	return function(inputPos)
+		if active and origin and startSz then
+			local d = inputPos - origin
+			frame.Size = UDim2.new(0, math.clamp(startSz.X+d.X, MIN_WIDTH, MAX_WIDTH),
+				0, math.clamp(startSz.Y+d.Y, MIN_HEIGHT, MAX_HEIGHT))
+		end
+	end
+end
+
+local dragCallbacks = {
+	bindDrag(titleBar,         mainFrame),
+	bindDrag(detailTitleBar,   detailFrame),
+	bindDrag(rdTitleBar,       remDetailFrame),
+}
+local resizeCallbacks = {
+	bindResize(resizeGrip,           mainFrame),
+	bindResize(animDetailResizeGrip, detailFrame),
+	bindResize(rdResizeGrip,         remDetailFrame),
+}
+
+UserInputService.InputChanged:Connect(function(input)
+	if input.UserInputType ~= Enum.UserInputType.MouseMovement
+		and input.UserInputType ~= Enum.UserInputType.Touch then return end
+	for _, fn in ipairs(dragCallbacks)   do fn(input.Position) end
+	for _, fn in ipairs(resizeCallbacks) do fn(input.Position) end
+end)
+
+-- ========== STATE ==========
+
+local detectionCount      = 0
+local filteredCount       = 0
+local remoteCount         = 0
+local entryOrder          = 0
+local strictMode          = false
+local currentAnimDetail   = nil
+local selectedRemoteData  = nil
+local selectedRemoteEntry = nil
+local activeTab           = "animations"
+
+-- ========== STATUS ==========
+
+local function updateStatus()
+	if activeTab == "animations" then
+		statusLabel.Text       = ("Detected: %d  |  Filtered: %d"):format(detectionCount, filteredCount)
+		statusLabel.TextColor3 = Color3.fromRGB(160, 200, 255)
+	else
+		statusLabel.Text       = ("Logged: %d  |  Click an entry to inspect"):format(remoteCount)
+		statusLabel.TextColor3 = Color3.fromRGB(155, 225, 180)
+	end
+end
+
+-- ========== TAB SWITCHING ==========
+
+local function setTab(tab)
+	activeTab = tab
+	if tab == "animations" then
+		animContent.Visible    = true
+		remoteContent.Visible  = false
+		remDetailFrame.Visible = false
+		animTabBtn.BackgroundColor3   = Color3.fromRGB(55, 45, 72)
+		animTabBtn.TextColor3         = Color3.fromRGB(230, 200, 255)
+		animTabBtn.Font               = Enum.Font.GothamBold
+		remoteTabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+		remoteTabBtn.TextColor3       = Color3.fromRGB(160, 160, 175)
+		remoteTabBtn.Font             = Enum.Font.Gotham
+		strictBtn.Visible = true; clearBtn.Visible = true
+	else
+		animContent.Visible    = false
+		remoteContent.Visible  = true
+		detailFrame.Visible    = false
+		remoteTabBtn.BackgroundColor3 = Color3.fromRGB(28, 40, 62)
+		remoteTabBtn.TextColor3       = Color3.fromRGB(150, 205, 255)
+		remoteTabBtn.Font             = Enum.Font.GothamBold
+		animTabBtn.BackgroundColor3   = Color3.fromRGB(30, 30, 40)
+		animTabBtn.TextColor3         = Color3.fromRGB(160, 160, 175)
+		animTabBtn.Font               = Enum.Font.Gotham
+		strictBtn.Visible = false; clearBtn.Visible = false
+	end
+	updateStatus()
+end
+
+animTabBtn.MouseButton1Click:Connect(function()  setTab("animations") end)
+remoteTabBtn.MouseButton1Click:Connect(function() setTab("remotes")   end)
+strictBtn.MouseButton1Click:Connect(function()
+	strictMode = not strictMode
+	strictBtn.Text             = strictMode and "Strict: ON" or "Strict: OFF"
+	strictBtn.BackgroundColor3 = strictMode and Color3.fromRGB(120,60,60) or Color3.fromRGB(70,70,85)
+end)
+
+-- ========== RICH TEXT HELPERS ==========
+
+local function bT(s)     return "<b>"..s.."</b>" end
+local function cT(s, h)  return ('<font color="#%s">%s</font>'):format(h, s) end
+local function sec(name) return "\n"..cT("— "..name.." —", "5599DD").."\n" end
+local function safeGet(fn) local ok,r = pcall(fn); return ok and r or "N/A" end
+
+-- ========== REMOTE DETAIL VIEW ==========
+
+local function showRemoteDetail(data)
+	selectedRemoteData     = data
+	remDetailFrame.Visible = true
+
+	-- Show the remote name in the title bar
+	rdTitleLabel.Text = "📡  " .. (data.remoteName or "Remote")
+
+	-- Remote metadata
+	local remoteType = safeGet(function()
+		return data.remote:IsA("RemoteEvent") and "RemoteEvent" or "RemoteFunction"
+	end)
+	local parentName = safeGet(function()
+		return data.remote.Parent and data.remote.Parent.Name or "nil"
+	end)
+	local fullPath = getRemotePath(data.remote)
+
+	-- Per-argument blocks with type colouring
+	local TYPE_COLORS = {
+		string   = "88CC88", number  = "88CCFF", boolean = "FFCC66",
+		Instance = "CC88FF", table   = "FF9966", Vector3 = "66DDCC",
+		Vector2  = "66DDCC", CFrame  = "66DDCC", Color3  = "FF88AA",
+		EnumItem = "DDCC88",
+	}
+
+	local argBlocks = {}
+	if #data.args == 0 then
+		table.insert(argBlocks, cT("  (no arguments passed)", "666688"))
+	else
+		for i, v in ipairs(data.args) do
+			local t = typeof(v)
+			local typeColor = TYPE_COLORS[t] or "AAAAAA"
+			local ok, serialized = pcall(deepSerializeArg, v, 0, "  ")
+			if not ok then serialized = tostring(v) end
+
+			-- Header: [1] string
+			local header = cT(bT(("[%d]"):format(i)), "CCCCDD") .. "  " .. cT(t, typeColor)
+			-- Value (indented, wrapped)
+			local valueStr = cT(serialized, "C8D4E8")
+			table.insert(argBlocks, header .. "\n  " .. valueStr)
+		end
+	end
+
+	local isFireServer = (data.method == "FireServer")
+	local methodColor  = isFireServer and "FFB844" or "44BBFF"
+	local code         = buildCode(data.remote, data.method, data.argsStr)
+
+	local lines = {
+		sec("REMOTE"),
+		bT("Name   ") .. cT(data.remoteName or "?", "E0D0FF"),
+		bT("Type   ") .. cT(remoteType, "AADDFF"),
+		bT("Method ") .. cT(data.method, methodColor),
+		bT("Parent ") .. cT(parentName, "CCCCCC"),
+		bT("Time   ") .. cT(data.timestamp or "?", "999999"),
+
+		sec("FULL PATH"),
+		cT(fullPath, "77BBFF"),
+
+		sec("ARGUMENTS  [" .. #data.args .. "]"),
+		table.concat(argBlocks, "\n\n"),
+
+		sec("GENERATED CODE"),
+		cT(code, "99FFAA"),
+	}
+
+	rdBodyText.Text = table.concat(lines, "\n")
+	rdScroll.CanvasPosition = Vector2.new(0, 0)
+end
+
+-- Remote detail panel bottom buttons
+local function flashRd(btn, msg, orig)
+	btn.Text = msg; task.delay(1.3, function() btn.Text = orig end)
+end
+
+rdCopyCodeBtn.MouseButton1Click:Connect(function()
+	if not selectedRemoteData then return end
+	local code = buildCode(selectedRemoteData.remote, selectedRemoteData.method, selectedRemoteData.argsStr)
+	if tryClipboard(code) then flashRd(rdCopyCodeBtn, "✔ Copied!", "📋 Copy Code")
+	else print("[RemoteSpy] Code:", code); flashRd(rdCopyCodeBtn, "Printed!", "📋 Copy Code") end
+end)
+
+rdCopyPathBtn.MouseButton1Click:Connect(function()
+	if not selectedRemoteData then return end
+	local path = getRemotePath(selectedRemoteData.remote)
+	if tryClipboard(path) then flashRd(rdCopyPathBtn, "✔ Copied!", "🔗 Copy Path")
+	else print("[RemoteSpy] Path:", path); flashRd(rdCopyPathBtn, "Printed!", "🔗 Copy Path") end
+end)
+
+rdRunCodeBtn.MouseButton1Click:Connect(function()
+	if not selectedRemoteData then return end
+	local code = buildCode(selectedRemoteData.remote, selectedRemoteData.method, selectedRemoteData.argsStr)
+	local fn, compErr = loadstring(code)
+	if fn then
+		local ok, runErr = pcall(fn)
+		if ok then flashRd(rdRunCodeBtn, "✔ Done!", "▶ Run Code")
+		else warn("[RemoteSpy] Runtime:", runErr); flashRd(rdRunCodeBtn, "⚠ Error!", "▶ Run Code") end
+	else
+		warn("[RemoteSpy] Parse:", compErr); print("[RemoteSpy] Code:", code)
+		flashRd(rdRunCodeBtn, "⚠ Parse Err", "▶ Run Code")
+	end
+end)
+
+-- ========== ANIMATION DETAIL VIEW ==========
+
+local function showAnimDetailView(data)
+	currentAnimDetail    = data
+	detailFrame.Visible  = true
+
+	local track    = data.track
+	local character = data.character
+	local humanoid = data.humanoid
+
+	local function bText(t) return "<b>"..t.."</b>" end
+	local function cText(t,h) return ('<font color="#%s">%s</font>'):format(h,t) end
+	local function section(title) return "\n"..cText(bText(title),"A090FF").."\n" end
+
+	local priority  = safeGet(function() return tostring(track.Priority) end)
+	local length    = safeGet(function() return ("%.3fs"):format(track.Length) end)
+	local speed     = safeGet(function() return ("%.2f"):format(track.Speed) end)
+	local weight    = safeGet(function() return ("%.2f"):format(track.WeightCurrent) end)
+	local timePos   = safeGet(function() return ("%.3fs"):format(track.TimePosition) end)
+	local looped    = safeGet(function() return tostring(track.Looped) end)
+	local isPlaying = safeGet(function() return tostring(track.IsPlaying) end)
+
+	local player   = Players:GetPlayerFromCharacter(character)
+	local charName = character and character.Name or "Unknown"
+	local dispName = player and player.DisplayName or "(NPC)"
+	local userId   = player and tostring(player.UserId) or "N/A"
+	local accAge   = player and (tostring(player.AccountAge).." days") or "N/A"
+	local teamName = player and (player.Team and player.Team.Name or "No team") or "N/A"
+	local health   = humanoid and ("%.0f / %.0f"):format(humanoid.Health,humanoid.MaxHealth) or "N/A"
+	local walkSpd  = humanoid and tostring(humanoid.WalkSpeed) or "N/A"
+	local rigType  = humanoid and tostring(humanoid.RigType)   or "N/A"
+	local state    = humanoid and tostring(humanoid:GetState()) or "N/A"
+	local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+	local pos      = rootPart and rootPart.Position
+	local posStr   = pos and ("(%.1f, %.1f, %.1f)"):format(pos.X,pos.Y,pos.Z) or "N/A"
+	local origin
+	if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+		origin = localPlayer.Character.HumanoidRootPart.Position
+	end
+	local curDist  = (pos and origin) and ("%.1f studs"):format((pos-origin).Magnitude) or "N/A"
+	local tool     = character and character:FindFirstChildWhichIsA("Tool")
+	local toolName = tool and tool.Name or "None"
+
+	local playingTracks = {}
+	if humanoid then
+		local anim = humanoid:FindFirstChildOfClass("Animator")
+		if anim then
+			local ok, tracks = pcall(function() return anim:GetPlayingAnimationTracks() end)
+			if ok and tracks then
+				for _, t in ipairs(tracks) do
+					table.insert(playingTracks,
+						("  • %s  [%s]"):format(t.Name~=""and t.Name or "Unnamed",
+						t.Animation and t.Animation.AnimationId or "?"))
+				end
+			end
+		end
+	end
+
+	local lines = {
+		section("🎬 ANIMATION"),
+		bText("Name: ")          .. (data.animName or "Unnamed"),
+		bText("Asset ID: ")      .. cText(data.animId or "Unknown","FFD080"),
+		bText("Priority: ")      .. priority,
+		bText("Length: ")        .. length,
+		bText("Speed: ")         .. speed,
+		bText("Weight: ")        .. weight,
+		bText("Time Position: ") .. timePos,
+		bText("Looped: ")        .. looped,
+		bText("Is Playing: ")    .. isPlaying,
+		bText("Detected At: ")   .. data.timestamp,
+		section("👤 CHARACTER"),
+		bText("Name: ")         .. charName,
+		bText("Display Name: ") .. dispName,
+		bText("Is Player: ")    .. (player and "Yes" or "No (NPC)"),
+		bText("User ID: ")      .. userId,
+		bText("Account Age: ")  .. accAge,
+		bText("Team: ")         .. teamName,
+		section("❤️ HUMANOID"),
+		bText("Health: ")       .. health,
+		bText("Walk Speed: ")   .. walkSpd,
+		bText("Rig Type: ")     .. rigType,
+		bText("State: ")        .. state,
+		bText("Equipped Tool: ").. toolName,
+		section("📍 POSITION"),
+		bText("World Position: ")      .. posStr,
+		bText("Distance (detected): ") .. ("%.1f studs"):format(data.distance),
+		bText("Distance (now): ")      .. curDist,
+		section("🎞️ PLAYING TRACKS"),
+		#playingTracks > 0 and table.concat(playingTracks,"\n") or "  (none)",
+	}
+
+	animDetailText.Text = table.concat(lines, "\n")
+	animDetailScroll.CanvasPosition = Vector2.new(0, 0)
+end
+
+copyIdBtn.MouseButton1Click:Connect(function()
+	if currentAnimDetail then
+		print("[AnimDetect] ID:",      currentAnimDetail.animId)
+		print("[AnimDetect] Name:",    currentAnimDetail.animName)
+		print("[AnimDetect] Player:",  currentAnimDetail.character and currentAnimDetail.character.Name or "?")
+	end
+end)
+ignoreBtn.MouseButton1Click:Connect(function()
+	if currentAnimDetail then
+		local idNum = extractIdNumber(currentAnimDetail.animId)
+		if idNum then
+			IGNORED_IDS[idNum] = true
+			print("[AnimDetect] Ignored:", idNum)
+			ignoreBtn.Text = "Added!"
+			task.delay(1.2, function() ignoreBtn.Text = "Add ID to Ignore List" end)
+		end
+	end
+end)
+
+-- ========== ANIMATION LOG ENTRY ==========
+
+local function addLogEntry(data)
+	detectionCount += 1; updateStatus()
+
+	local children = {}
+	for _, c in ipairs(scrollFrame:GetChildren()) do
+		if c:IsA("TextButton") then table.insert(children, c) end
+	end
+	if #children >= MAX_LOG_ENTRIES then
+		table.sort(children, function(a,b) return a.LayoutOrder < b.LayoutOrder end)
+		children[1]:Destroy()
+	end
+
+	entryOrder += 1
+	local entry = Instance.new("TextButton")
+	entry.Size = UDim2.new(1,-4,0,38); entry.BackgroundColor3 = Color3.fromRGB(30,30,38)
+	entry.BorderSizePixel = 0; entry.LayoutOrder = entryOrder
+	entry.AutoButtonColor = false; entry.Text = ""; entry.Parent = scrollFrame
+	mkCorner(entry, 4)
+
+	local top = Instance.new("TextLabel", entry)
+	top.Size = UDim2.new(1,-8,0,16); top.Position = UDim2.new(0,6,0,2)
+	top.BackgroundTransparency = 1
+	top.Text = ("[%s] %s — %.1f studs"):format(data.timestamp, data.character.Name, data.distance)
+	top.TextColor3 = Color3.fromRGB(255,160,140); top.TextXAlignment = Enum.TextXAlignment.Left
+	top.Font = Enum.Font.GothamBold; top.TextSize = 11
+
+	local bot = Instance.new("TextLabel", entry)
+	bot.Size = UDim2.new(1,-8,0,16); bot.Position = UDim2.new(0,6,0,18)
+	bot.BackgroundTransparency = 1
+	bot.Text = ("%s  (%s)"):format(data.animName, data.animId)
+	bot.TextColor3 = Color3.fromRGB(200,200,210); bot.TextXAlignment = Enum.TextXAlignment.Left
+	bot.Font = Enum.Font.Code; bot.TextSize = 10; bot.TextTruncate = Enum.TextTruncate.AtEnd
+
+	entry.MouseEnter:Connect(function()  entry.BackgroundColor3 = Color3.fromRGB(45,45,58) end)
+	entry.MouseLeave:Connect(function()  entry.BackgroundColor3 = Color3.fromRGB(30,30,38) end)
+	entry.MouseButton1Click:Connect(function() showAnimDetailView(data) end)
+	task.defer(function()
+		scrollFrame.CanvasPosition = Vector2.new(0, scrollFrame.AbsoluteCanvasSize.Y)
+	end)
+end
+
+clearBtn.MouseButton1Click:Connect(function()
+	for _, c in ipairs(scrollFrame:GetChildren()) do
+		if c:IsA("TextButton") then c:Destroy() end
+	end
+	detectionCount = 0; filteredCount = 0; updateStatus()
+end)
+
+-- ========== REMOTE LOG ENTRY ==========
+
+local function addRemoteEntry(data)
+	remoteCount += 1; updateStatus()
+
+	local children = {}
+	for _, c in ipairs(remoteScroll:GetChildren()) do
+		if c:IsA("TextButton") then table.insert(children, c) end
+	end
+	if #children >= MAX_LOG_ENTRIES then
+		table.sort(children, function(a,b) return a.LayoutOrder < b.LayoutOrder end)
+		children[1]:Destroy()
+	end
+
+	entryOrder += 1
+	local isFire  = (data.method == "FireServer")
+	local bgBadge = isFire and Color3.fromRGB(90,55,20) or Color3.fromRGB(20,55,100)
+	local fgBadge = isFire and Color3.fromRGB(255,185,90) or Color3.fromRGB(110,200,255)
+
+	local entry = Instance.new("TextButton")
+	entry.Size = UDim2.new(1,-4,0,44); entry.BackgroundColor3 = Color3.fromRGB(28,28,36)
+	entry.BorderSizePixel = 0; entry.LayoutOrder = entryOrder
+	entry.AutoButtonColor = false; entry.Text = ""; entry.Parent = remoteScroll
+	mkCorner(entry, 4)
+
+	local badge = Instance.new("TextLabel", entry)
+	badge.Size = UDim2.new(0,84,0,15); badge.Position = UDim2.new(0,6,0,4)
+	badge.BackgroundColor3 = bgBadge; badge.Text = data.method
+	badge.TextColor3 = fgBadge; badge.TextXAlignment = Enum.TextXAlignment.Center
+	badge.Font = Enum.Font.GothamBold; badge.TextSize = 8; badge.BorderSizePixel = 0
+	mkCorner(badge, 3)
+
+	local ts = Instance.new("TextLabel", entry)
+	ts.Size = UDim2.new(0,58,0,15); ts.Position = UDim2.new(1,-62,0,4)
+	ts.BackgroundTransparency = 1; ts.Text = data.timestamp
+	ts.TextColor3 = Color3.fromRGB(110,110,130); ts.TextXAlignment = Enum.TextXAlignment.Right
+	ts.Font = Enum.Font.Gotham; ts.TextSize = 9
+
+	local nameLine = Instance.new("TextLabel", entry)
+	nameLine.Size = UDim2.new(1,-10,0,14); nameLine.Position = UDim2.new(0,6,0,20)
+	nameLine.BackgroundTransparency = 1; nameLine.Text = data.remoteName
+	nameLine.TextColor3 = Color3.fromRGB(215,190,255); nameLine.TextXAlignment = Enum.TextXAlignment.Left
+	nameLine.Font = Enum.Font.GothamBold; nameLine.TextSize = 11
+	nameLine.TextTruncate = Enum.TextTruncate.AtEnd
+
+	local argsLine = Instance.new("TextLabel", entry)
+	argsLine.Size = UDim2.new(1,-10,0,12); argsLine.Position = UDim2.new(0,6,0,31)
+	argsLine.BackgroundTransparency = 1; argsLine.Text = data.argsPreview
+	argsLine.TextColor3 = Color3.fromRGB(140,155,165); argsLine.TextXAlignment = Enum.TextXAlignment.Left
+	argsLine.Font = Enum.Font.Code; argsLine.TextSize = 9
+	argsLine.TextTruncate = Enum.TextTruncate.AtEnd
+
+	entry.MouseEnter:Connect(function()
+		if selectedRemoteEntry ~= entry then
+			entry.BackgroundColor3 = Color3.fromRGB(40,40,52)
+		end
+	end)
+	entry.MouseLeave:Connect(function()
+		if selectedRemoteEntry ~= entry then
+			entry.BackgroundColor3 = Color3.fromRGB(28,28,36)
+		end
+	end)
+	entry.MouseButton1Click:Connect(function()
+		if selectedRemoteEntry and selectedRemoteEntry ~= entry then
+			selectedRemoteEntry.BackgroundColor3 = Color3.fromRGB(28,28,36)
+		end
+		selectedRemoteEntry = entry
+		entry.BackgroundColor3 = Color3.fromRGB(35,45,65)
+		showRemoteDetail(data)   -- <-- opens the detail panel
+	end)
+
+	task.defer(function()
+		remoteScroll.CanvasPosition = Vector2.new(0, remoteScroll.AbsoluteCanvasSize.Y)
+	end)
+end
+
+-- ========== ACTION BAR BUTTONS (log-panel, duplicates detail-panel for quick access) ==========
+
+local function flashBtn(btn, msg, orig)
+	btn.Text = msg; task.delay(1.3, function() btn.Text = orig end)
+end
+
+copyCodeBtn.MouseButton1Click:Connect(function()
+	if not selectedRemoteData then flashBtn(copyCodeBtn,"Select entry!","Copy Code"); return end
+	local code = buildCode(selectedRemoteData.remote, selectedRemoteData.method, selectedRemoteData.argsStr)
+	if tryClipboard(code) then flashBtn(copyCodeBtn,"Copied!","Copy Code")
+	else print("[RemoteSpy] Code:", code); flashBtn(copyCodeBtn,"Printed!","Copy Code") end
+end)
+copyPathBtn.MouseButton1Click:Connect(function()
+	if not selectedRemoteData then flashBtn(copyPathBtn,"Select entry!","Copy Path"); return end
+	local path = getRemotePath(selectedRemoteData.remote)
+	if tryClipboard(path) then flashBtn(copyPathBtn,"Copied!","Copy Path")
+	else print("[RemoteSpy] Path:", path); flashBtn(copyPathBtn,"Printed!","Copy Path") end
+end)
+runCodeBtn.MouseButton1Click:Connect(function()
+	if not selectedRemoteData then flashBtn(runCodeBtn,"Select entry!","Run Code"); return end
+	local code = buildCode(selectedRemoteData.remote, selectedRemoteData.method, selectedRemoteData.argsStr)
+	local fn, err = loadstring(code)
+	if fn then
+		local ok, re = pcall(fn)
+		if ok then flashBtn(runCodeBtn,"Done!","Run Code")
+		else warn("[RemoteSpy] Runtime:", re); flashBtn(runCodeBtn,"Error!","Run Code") end
+	else
+		warn("[RemoteSpy] Parse:", err); print("[RemoteSpy] Code:", code)
+		flashBtn(runCodeBtn,"Parse Err!","Run Code")
+	end
+end)
+clearRemBtn.MouseButton1Click:Connect(function()
+	for _, c in ipairs(remoteScroll:GetChildren()) do
+		if c:IsA("TextButton") then c:Destroy() end
+	end
+	remoteCount = 0; selectedRemoteData = nil; selectedRemoteEntry = nil
+	remDetailFrame.Visible = false; updateStatus()
+end)
+
+-- ========== ANIMATION DETECTION ==========
+
+local trackedHumanoids = {}
+
+local function getOriginPosition()
+	local c = localPlayer.Character
+	if c and c:FindFirstChild("HumanoidRootPart") then
+		return c.HumanoidRootPart.Position
+	end
+end
+
+local function onAnimationPlayed(humanoid, animationTrack)
+	local character = humanoid.Parent; if not character then return end
+	local origin    = getOriginPosition(); if not origin then return end
+	local rootPart  = character:FindFirstChild("HumanoidRootPart"); if not rootPart then return end
+	local distance  = (rootPart.Position - origin).Magnitude
+	if distance > DETECTION_RADIUS then return end
+
+	local anim     = animationTrack.Animation
+	local animId   = anim and anim.AnimationId or "Unknown"
+	local animName = (animationTrack.Name ~= "" and animationTrack.Name)
+		or (anim and anim.Name ~= "" and anim.Name) or "Unnamed"
+
+	local passes = strictMode and matchesAny(animName, COMBAT_KEYWORDS)
+		or shouldLogAnimation(animName, animId)
+
+	if not passes then filteredCount += 1; updateStatus(); return end
+
+	addLogEntry({
+		track = animationTrack, anim = anim, humanoid = humanoid,
+		character = character,  animId = animId, animName = animName,
+		distance = distance,    timestamp = os.date("%H:%M:%S"),
+	})
+end
+
+local function trackHumanoid(humanoid)
+	if trackedHumanoids[humanoid] then return end
+	trackedHumanoids[humanoid] = true
+	local animator = humanoid:FindFirstChildOfClass("Animator")
+	if not animator then
+		animator = humanoid:WaitForChild("Animator", 5)
+		if not animator then return end
+	end
+	animator.AnimationPlayed:Connect(function(track)
+		onAnimationPlayed(humanoid, track)
+	end)
+	humanoid.Destroying:Connect(function() trackedHumanoids[humanoid] = nil end)
+end
+
+for _, d in ipairs(workspace:GetDescendants()) do
+	if d:IsA("Humanoid") then trackHumanoid(d) end
+end
+workspace.DescendantAdded:Connect(function(d)
+	if d:IsA("Humanoid") then trackHumanoid(d) end
+end)
+
+-- ========== REMOTE DETECTION ==========
+
+local function setupRemoteSpy()
+	if not getrawmetatable then
+		warn("[RemoteSpy] getrawmetatable not available — remote tab will stay empty.")
+		return
+	end
+	local mt               = getrawmetatable(game)
+	local originalNamecall = mt.__namecall
+	if setreadonly then setreadonly(mt, false) end
+
+	local function hook(self, ...)
+		local method = getnamecallmethod()
+		if (method == "FireServer" or method == "InvokeServer")
+			and typeof(self) == "Instance"
+			and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) then
+
+			local args = {...}
+			local ok, argsStr = pcall(serializeArgs, args)
+			if not ok then argsStr = "..." end
+			local preview = argsStr ~= "" and ("("..argsStr..")") or "()"
+			if #preview > 64 then preview = preview:sub(1,61).."..." end
+
+			task.defer(function()
+				pcall(addRemoteEntry, {
+					remote      = self,
+					remoteName  = self.Name,
+					method      = method,
+					args        = args,
+					argsStr     = argsStr,
+					argsPreview = preview,
+					timestamp   = os.date("%H:%M:%S"),
+				})
+			end)
+		end
+		return originalNamecall(self, ...)
+	end
+
+	mt.__namecall = newcclosure and newcclosure(hook) or hook
+	if setreadonly then setreadonly(mt, true) end
+	print("[RemoteSpy] Hook active — listening for FireServer / InvokeServer.")
+end
+
+pcall(setupRemoteSpy)
