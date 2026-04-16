@@ -1,7 +1,6 @@
 -- AnimationDetectorUI.lua
 -- LocalScript — place in StarterPlayerScripts
 -- Enhanced version with pause, search, export, player filtering, theme constants, and better cleanup.
-local __BOOT_OK, __BOOT_ERR = xpcall(function()
 local Players          = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local CollectionService = game:GetService("CollectionService")
@@ -1074,16 +1073,7 @@ local remoteSearchText    = ""
 local pausedIndividualRemotes = {} -- Tracks specifically paused remotes
 local pausedRemoteArchive = {} -- Keeps a restorable snapshot of paused remotes
 local pausedAnimationArchive = {}
-local pausedIndividualAnimations = {}
-local pausedAnimationIndividualArchive = {}
 local animEntries = {}
-local pausedRemotesScroll
-local pausedAnimationsScroll
-local addRemoteEntry
-local refreshPauseAnimDetailButton
-local rebuildPausedRemotesPopup
-local rebuildPausedAnimationsPopup
-local applyRemoteFilter
 local detectionRadius     = DEFAULT_DETECTION_RADIUS
 local previousTab         = "animations"
 local activeSliderUpdate  = nil
@@ -1097,14 +1087,6 @@ local function getOriginPosition()
 	if c and c:FindFirstChild("HumanoidRootPart") then
 		return c.HumanoidRootPart.Position
 	end
-end
-
-local function getAnimationPauseKey(data)
-	local rawId = data and data.animId or ""
-	local idNum = extractIdNumber(rawId)
-	if idNum then return "id:" .. idNum end
-	local fallbackName = data and data.animName or "Unnamed"
-	return "name:" .. fallbackName
 end
 
 local function updateRangeVisualizer()
@@ -1274,9 +1256,7 @@ local function setTab(tab)
 		clearBtn.Visible        = false
 		pauseAnimBtn.Visible    = false
 		pauseRemotesBtn.Visible = true
-		if applyRemoteFilter then
-			applyRemoteFilter()  -- reapply search filter when tab shown
-		end
+		applyRemoteFilter()  -- reapply search filter when tab shown
 	else
 		animContent.Visible     = false
 		remoteContent.Visible   = false
@@ -1329,9 +1309,7 @@ localPlayerFilterBtn.MouseButton1Click:Connect(function()
 	remoteFilterLocal = not remoteFilterLocal
 	localPlayerFilterBtn.Text = remoteFilterLocal and "Local" or "All"
 	localPlayerFilterBtn.BackgroundColor3 = remoteFilterLocal and Color3.fromRGB(60,100,60) or Theme.ButtonDefault
-	if applyRemoteFilter then
-		applyRemoteFilter()
-	end
+	applyRemoteFilter()
 end)
 
 local function updateSliderFromInputX(inputX)
@@ -1533,18 +1511,6 @@ refreshAnimBtn.Font = Enum.Font.Gotham; refreshAnimBtn.TextSize = 10
 refreshAnimBtn.BorderSizePixel = 0; refreshAnimBtn.Parent = detailFrame
 mkCorner(refreshAnimBtn, 4)
 
-local pauseAnimDetailBtn = Instance.new("TextButton")
-pauseAnimDetailBtn.Size = UDim2.new(1, -16, 0, 22)
-pauseAnimDetailBtn.Position = UDim2.new(0, 8, 1, -90)
-pauseAnimDetailBtn.BackgroundColor3 = Color3.fromRGB(130, 48, 48)
-pauseAnimDetailBtn.Text = "⏸ Pause Animation"
-pauseAnimDetailBtn.TextColor3 = Theme.TextPrimary
-pauseAnimDetailBtn.Font = Enum.Font.Gotham
-pauseAnimDetailBtn.TextSize = 10
-pauseAnimDetailBtn.BorderSizePixel = 0
-pauseAnimDetailBtn.Parent = detailFrame
-mkCorner(pauseAnimDetailBtn, 4)
-
 local animDetailResizeGrip = Instance.new("TextButton")
 animDetailResizeGrip.Size                   = UDim2.new(0, 16, 0, 16)
 animDetailResizeGrip.Position               = UDim2.new(1, -18, 1, -18)
@@ -1676,12 +1642,6 @@ rdPauseBtn.MouseButton1Click:Connect(function()
 		rdPauseBtn.Text = "⏸ Pause"
 		rdPauseBtn.BackgroundColor3 = Color3.fromRGB(130, 48, 48)
 	end
-
-	if pausedRemotesFrame.Visible then
-		if rebuildPausedRemotesPopup then
-			rebuildPausedRemotesPopup()
-		end
-	end
 end)
 
 local rdResizeGrip = Instance.new("TextButton")
@@ -1697,326 +1657,6 @@ rdResizeGrip.Parent                 = remDetailFrame
 mkCorner(rdResizeGrip, 3)
 rdResizeGrip.MouseEnter:Connect(function() rdResizeGrip.BackgroundTransparency = 0   end)
 rdResizeGrip.MouseLeave:Connect(function() rdResizeGrip.BackgroundTransparency = 0.4 end)
-
-refreshPauseAnimDetailButton = function()
-	if not currentAnimDetail then
-		pauseAnimDetailBtn.Text = "⏸ Pause Animation"
-		pauseAnimDetailBtn.BackgroundColor3 = Color3.fromRGB(130, 48, 48)
-		return
-	end
-	local key = getAnimationPauseKey(currentAnimDetail)
-	if pausedIndividualAnimations[key] then
-		pauseAnimDetailBtn.Text = "▶ Resume Animation"
-		pauseAnimDetailBtn.BackgroundColor3 = Color3.fromRGB(120, 100, 40)
-	else
-		pauseAnimDetailBtn.Text = "⏸ Pause Animation"
-		pauseAnimDetailBtn.BackgroundColor3 = Color3.fromRGB(130, 48, 48)
-	end
-end
-
-local function clearPausedPopupList(scroll)
-	for _, c in ipairs(scroll:GetChildren()) do
-		if c:IsA("Frame") or c:IsA("TextLabel") then
-			c:Destroy()
-		end
-	end
-end
-
-rebuildPausedRemotesPopup = function()
-	clearPausedPopupList(pausedRemotesScroll)
-
-	local names = {}
-	for remoteName, _ in pairs(pausedIndividualRemotes) do
-		table.insert(names, remoteName)
-	end
-	table.sort(names)
-
-	if #names == 0 then
-		local empty = Instance.new("TextLabel")
-		empty.Size = UDim2.new(1, -4, 0, 26)
-		empty.BackgroundTransparency = 1
-		empty.Text = "No paused remotes"
-		empty.TextColor3 = Theme.TextMuted
-		empty.TextXAlignment = Enum.TextXAlignment.Left
-		empty.Font = Enum.Font.Gotham
-		empty.TextSize = 11
-		empty.Parent = pausedRemotesScroll
-		return
-	end
-
-	for _, remoteName in ipairs(names) do
-		local data = pausedRemoteArchive[remoteName]
-		local row = Instance.new("Frame")
-		row.Size = UDim2.new(1, -4, 0, 46)
-		row.BackgroundColor3 = Theme.EntryBg
-		row.BorderSizePixel = 0
-		row.Parent = pausedRemotesScroll
-		mkCorner(row, 4)
-
-		local nameLabel = Instance.new("TextLabel")
-		nameLabel.Size = UDim2.new(1, -92, 0, 20)
-		nameLabel.Position = UDim2.new(0, 6, 0, 3)
-		nameLabel.BackgroundTransparency = 1
-		nameLabel.Text = remoteName
-		nameLabel.TextColor3 = Color3.fromRGB(220, 190, 255)
-		nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-		nameLabel.Font = Enum.Font.GothamBold
-		nameLabel.TextSize = 11
-		nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
-		nameLabel.Parent = row
-
-		local subText = "Waiting for next call"
-		if data and data.method then
-			subText = ("Last: %s at %s"):format(data.method, data.timestamp or "??:??:??")
-		end
-		local infoLabel = Instance.new("TextLabel")
-		infoLabel.Size = UDim2.new(1, -92, 0, 16)
-		infoLabel.Position = UDim2.new(0, 6, 0, 24)
-		infoLabel.BackgroundTransparency = 1
-		infoLabel.Text = subText
-		infoLabel.TextColor3 = Theme.TextMuted
-		infoLabel.TextXAlignment = Enum.TextXAlignment.Left
-		infoLabel.Font = Enum.Font.Code
-		infoLabel.TextSize = 9
-		infoLabel.TextTruncate = Enum.TextTruncate.AtEnd
-		infoLabel.Parent = row
-
-		local unpauseBtn = Instance.new("TextButton")
-		unpauseBtn.Size = UDim2.new(0, 80, 0, 24)
-		unpauseBtn.Position = UDim2.new(1, -86, 0.5, -12)
-		unpauseBtn.BackgroundColor3 = Color3.fromRGB(120, 100, 40)
-		unpauseBtn.Text = "▶ Unpause"
-		unpauseBtn.TextColor3 = Theme.TextPrimary
-		unpauseBtn.Font = Enum.Font.Gotham
-		unpauseBtn.TextSize = 10
-		unpauseBtn.BorderSizePixel = 0
-		unpauseBtn.Parent = row
-		mkCorner(unpauseBtn, 4)
-
-		unpauseBtn.MouseButton1Click:Connect(function()
-			pausedIndividualRemotes[remoteName] = nil
-			local archived = pausedRemoteArchive[remoteName]
-			pausedRemoteArchive[remoteName] = nil
-			if archived then
-				pcall(addRemoteEntry, archived)
-			end
-			rebuildPausedRemotesPopup()
-		end)
-	end
-end
-
-rebuildPausedAnimationsPopup = function()
-	clearPausedPopupList(pausedAnimationsScroll)
-
-	local keys = {}
-	for animKey, _ in pairs(pausedIndividualAnimations) do
-		table.insert(keys, animKey)
-	end
-	table.sort(keys)
-
-	if #keys == 0 then
-		local empty = Instance.new("TextLabel")
-		empty.Size = UDim2.new(1, -4, 0, 26)
-		empty.BackgroundTransparency = 1
-		empty.Text = "No paused animations"
-		empty.TextColor3 = Theme.TextMuted
-		empty.TextXAlignment = Enum.TextXAlignment.Left
-		empty.Font = Enum.Font.Gotham
-		empty.TextSize = 11
-		empty.Parent = pausedAnimationsScroll
-		return
-	end
-
-	for _, animKey in ipairs(keys) do
-		local data = pausedAnimationIndividualArchive[animKey]
-		local row = Instance.new("Frame")
-		row.Size = UDim2.new(1, -4, 0, 46)
-		row.BackgroundColor3 = Theme.EntryBg
-		row.BorderSizePixel = 0
-		row.Parent = pausedAnimationsScroll
-		mkCorner(row, 4)
-
-		local nameText = data and data.animName or animKey
-		local nameLabel = Instance.new("TextLabel")
-		nameLabel.Size = UDim2.new(1, -92, 0, 20)
-		nameLabel.Position = UDim2.new(0, 6, 0, 3)
-		nameLabel.BackgroundTransparency = 1
-		nameLabel.Text = nameText
-		nameLabel.TextColor3 = Color3.fromRGB(255, 185, 140)
-		nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-		nameLabel.Font = Enum.Font.GothamBold
-		nameLabel.TextSize = 11
-		nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
-		nameLabel.Parent = row
-
-		local subText = "Waiting for next play"
-		if data then
-			subText = ("ID: %s"):format(data.animId or "Unknown")
-		end
-		local infoLabel = Instance.new("TextLabel")
-		infoLabel.Size = UDim2.new(1, -92, 0, 16)
-		infoLabel.Position = UDim2.new(0, 6, 0, 24)
-		infoLabel.BackgroundTransparency = 1
-		infoLabel.Text = subText
-		infoLabel.TextColor3 = Theme.TextMuted
-		infoLabel.TextXAlignment = Enum.TextXAlignment.Left
-		infoLabel.Font = Enum.Font.Code
-		infoLabel.TextSize = 9
-		infoLabel.TextTruncate = Enum.TextTruncate.AtEnd
-		infoLabel.Parent = row
-
-		local unpauseBtn = Instance.new("TextButton")
-		unpauseBtn.Size = UDim2.new(0, 80, 0, 24)
-		unpauseBtn.Position = UDim2.new(1, -86, 0.5, -12)
-		unpauseBtn.BackgroundColor3 = Color3.fromRGB(120, 100, 40)
-		unpauseBtn.Text = "▶ Unpause"
-		unpauseBtn.TextColor3 = Theme.TextPrimary
-		unpauseBtn.Font = Enum.Font.Gotham
-		unpauseBtn.TextSize = 10
-		unpauseBtn.BorderSizePixel = 0
-		unpauseBtn.Parent = row
-		mkCorner(unpauseBtn, 4)
-
-		unpauseBtn.MouseButton1Click:Connect(function()
-			pausedIndividualAnimations[animKey] = nil
-			local archived = pausedAnimationIndividualArchive[animKey]
-			pausedAnimationIndividualArchive[animKey] = nil
-			if archived then
-				addLogEntry(archived)
-			end
-			rebuildPausedAnimationsPopup()
-			refreshPauseAnimDetailButton()
-		end)
-	end
-end
-
--- ========== PAUSED REMOTES POPUP ==========
-local pausedRemotesFrame = Instance.new("Frame")
-pausedRemotesFrame.Name = "PausedRemotesFrame"
-pausedRemotesFrame.Size = UDim2.new(0, 360, 0, 360)
-pausedRemotesFrame.Position = UDim2.new(0, 900, 0, 80)
-pausedRemotesFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
-pausedRemotesFrame.BorderSizePixel = 0
-pausedRemotesFrame.Visible = false
-pausedRemotesFrame.Active = true
-pausedRemotesFrame.Parent = screenGui
-mkCorner(pausedRemotesFrame, 8)
-mkStroke(pausedRemotesFrame, Color3.fromRGB(90, 70, 120))
-
-local pausedRemotesTitleBar = Instance.new("Frame")
-pausedRemotesTitleBar.Size = UDim2.new(1, 0, 0, 32)
-pausedRemotesTitleBar.BackgroundColor3 = Color3.fromRGB(40, 32, 56)
-pausedRemotesTitleBar.BorderSizePixel = 0
-pausedRemotesTitleBar.Active = true
-pausedRemotesTitleBar.Parent = pausedRemotesFrame
-mkCorner(pausedRemotesTitleBar, 8)
-
-local pausedRemotesTitle = Instance.new("TextLabel")
-pausedRemotesTitle.Size = UDim2.new(1, -44, 1, 0)
-pausedRemotesTitle.Position = UDim2.new(0, 12, 0, 0)
-pausedRemotesTitle.BackgroundTransparency = 1
-pausedRemotesTitle.Text = "Paused Remotes"
-pausedRemotesTitle.TextColor3 = Color3.fromRGB(230, 205, 255)
-pausedRemotesTitle.TextXAlignment = Enum.TextXAlignment.Left
-pausedRemotesTitle.Font = Enum.Font.GothamBold
-pausedRemotesTitle.TextSize = 13
-pausedRemotesTitle.Parent = pausedRemotesTitleBar
-
-local pausedRemotesCloseBtn = Instance.new("TextButton")
-pausedRemotesCloseBtn.Size = UDim2.new(0, 24, 0, 22)
-pausedRemotesCloseBtn.Position = UDim2.new(1, -30, 0, 5)
-pausedRemotesCloseBtn.BackgroundColor3 = Theme.ButtonDanger
-pausedRemotesCloseBtn.Text = "X"
-pausedRemotesCloseBtn.TextColor3 = Theme.TextPrimary
-pausedRemotesCloseBtn.Font = Enum.Font.GothamBold
-pausedRemotesCloseBtn.TextSize = 12
-pausedRemotesCloseBtn.BorderSizePixel = 0
-pausedRemotesCloseBtn.Parent = pausedRemotesTitleBar
-mkCorner(pausedRemotesCloseBtn, 4)
-
-pausedRemotesScroll = Instance.new("ScrollingFrame")
-pausedRemotesScroll.Size = UDim2.new(1, -16, 1, -44)
-pausedRemotesScroll.Position = UDim2.new(0, 8, 0, 36)
-pausedRemotesScroll.BackgroundColor3 = Color3.fromRGB(12, 13, 18)
-pausedRemotesScroll.BorderSizePixel = 0
-pausedRemotesScroll.ScrollBarThickness = 6
-pausedRemotesScroll.ScrollBarImageColor3 = Theme.ScrollBarColor
-pausedRemotesScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-pausedRemotesScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-pausedRemotesScroll.Parent = pausedRemotesFrame
-mkCorner(pausedRemotesScroll, 4)
-local prList = Instance.new("UIListLayout", pausedRemotesScroll)
-prList.SortOrder = Enum.SortOrder.LayoutOrder
-prList.Padding = UDim.new(0, 4)
-local prPad = Instance.new("UIPadding", pausedRemotesScroll)
-prPad.PaddingTop = UDim.new(0, 6)
-prPad.PaddingBottom = UDim.new(0, 6)
-prPad.PaddingLeft = UDim.new(0, 6)
-prPad.PaddingRight = UDim.new(0, 6)
-
--- ========== PAUSED ANIMATIONS POPUP ==========
-local pausedAnimationsFrame = Instance.new("Frame")
-pausedAnimationsFrame.Name = "PausedAnimationsFrame"
-pausedAnimationsFrame.Size = UDim2.new(0, 360, 0, 360)
-pausedAnimationsFrame.Position = UDim2.new(0, 900, 0, 460)
-pausedAnimationsFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
-pausedAnimationsFrame.BorderSizePixel = 0
-pausedAnimationsFrame.Visible = false
-pausedAnimationsFrame.Active = true
-pausedAnimationsFrame.Parent = screenGui
-mkCorner(pausedAnimationsFrame, 8)
-mkStroke(pausedAnimationsFrame, Color3.fromRGB(90, 70, 120))
-
-local pausedAnimationsTitleBar = Instance.new("Frame")
-pausedAnimationsTitleBar.Size = UDim2.new(1, 0, 0, 32)
-pausedAnimationsTitleBar.BackgroundColor3 = Color3.fromRGB(40, 32, 56)
-pausedAnimationsTitleBar.BorderSizePixel = 0
-pausedAnimationsTitleBar.Active = true
-pausedAnimationsTitleBar.Parent = pausedAnimationsFrame
-mkCorner(pausedAnimationsTitleBar, 8)
-
-local pausedAnimationsTitle = Instance.new("TextLabel")
-pausedAnimationsTitle.Size = UDim2.new(1, -44, 1, 0)
-pausedAnimationsTitle.Position = UDim2.new(0, 12, 0, 0)
-pausedAnimationsTitle.BackgroundTransparency = 1
-pausedAnimationsTitle.Text = "Paused Animations"
-pausedAnimationsTitle.TextColor3 = Color3.fromRGB(230, 205, 255)
-pausedAnimationsTitle.TextXAlignment = Enum.TextXAlignment.Left
-pausedAnimationsTitle.Font = Enum.Font.GothamBold
-pausedAnimationsTitle.TextSize = 13
-pausedAnimationsTitle.Parent = pausedAnimationsTitleBar
-
-local pausedAnimationsCloseBtn = Instance.new("TextButton")
-pausedAnimationsCloseBtn.Size = UDim2.new(0, 24, 0, 22)
-pausedAnimationsCloseBtn.Position = UDim2.new(1, -30, 0, 5)
-pausedAnimationsCloseBtn.BackgroundColor3 = Theme.ButtonDanger
-pausedAnimationsCloseBtn.Text = "X"
-pausedAnimationsCloseBtn.TextColor3 = Theme.TextPrimary
-pausedAnimationsCloseBtn.Font = Enum.Font.GothamBold
-pausedAnimationsCloseBtn.TextSize = 12
-pausedAnimationsCloseBtn.BorderSizePixel = 0
-pausedAnimationsCloseBtn.Parent = pausedAnimationsTitleBar
-mkCorner(pausedAnimationsCloseBtn, 4)
-
-pausedAnimationsScroll = Instance.new("ScrollingFrame")
-pausedAnimationsScroll.Size = UDim2.new(1, -16, 1, -44)
-pausedAnimationsScroll.Position = UDim2.new(0, 8, 0, 36)
-pausedAnimationsScroll.BackgroundColor3 = Color3.fromRGB(12, 13, 18)
-pausedAnimationsScroll.BorderSizePixel = 0
-pausedAnimationsScroll.ScrollBarThickness = 6
-pausedAnimationsScroll.ScrollBarImageColor3 = Theme.ScrollBarColor
-pausedAnimationsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-pausedAnimationsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-pausedAnimationsScroll.Parent = pausedAnimationsFrame
-mkCorner(pausedAnimationsScroll, 4)
-local paList = Instance.new("UIListLayout", pausedAnimationsScroll)
-paList.SortOrder = Enum.SortOrder.LayoutOrder
-paList.Padding = UDim.new(0, 4)
-local paPad = Instance.new("UIPadding", pausedAnimationsScroll)
-paPad.PaddingTop = UDim.new(0, 6)
-paPad.PaddingBottom = UDim.new(0, 6)
-paPad.PaddingLeft = UDim.new(0, 6)
-paPad.PaddingRight = UDim.new(0, 6)
 
 -- ========== DRAG / RESIZE ==========
 local function bindDrag(bar, frame)
@@ -2064,8 +1704,6 @@ local dragCallbacks = {
 	bindDrag(titleBar,         mainFrame),
 	bindDrag(detailTitleBar,   detailFrame),
 	bindDrag(rdTitleBar,       remDetailFrame),
-	bindDrag(pausedRemotesTitleBar, pausedRemotesFrame),
-	bindDrag(pausedAnimationsTitleBar, pausedAnimationsFrame),
 }
 local resizeCallbacks = {
 	bindResize(resizeGrip,           mainFrame),
@@ -2303,7 +1941,6 @@ local function showAnimDetailView(data)
 	currentAnimDetail    = data
 	detailFrame.Visible  = true
 	refreshAnimDetail()
-	refreshPauseAnimDetailButton()
 end
 
 copyIdBtn.MouseButton1Click:Connect(function()
@@ -2326,45 +1963,8 @@ ignoreBtn.MouseButton1Click:Connect(function()
 end)
 refreshAnimBtn.MouseButton1Click:Connect(refreshAnimDetail)
 
-pauseAnimDetailBtn.MouseButton1Click:Connect(function()
-	if not currentAnimDetail then return end
-	local key = getAnimationPauseKey(currentAnimDetail)
-	if pausedIndividualAnimations[key] then
-		pausedIndividualAnimations[key] = nil
-		pausedAnimationIndividualArchive[key] = nil
-	else
-		pausedIndividualAnimations[key] = true
-		pausedAnimationIndividualArchive[key] = currentAnimDetail
-	end
-	refreshPauseAnimDetailButton()
-	if pausedAnimationsFrame.Visible then
-		if rebuildPausedAnimationsPopup then
-			rebuildPausedAnimationsPopup()
-		end
-	end
-end)
-
-pausedRemotesCloseBtn.MouseButton1Click:Connect(function()
-	pausedRemotesFrame.Visible = false
-end)
-
-pausedAnimationsCloseBtn.MouseButton1Click:Connect(function()
-	pausedAnimationsFrame.Visible = false
-end)
-
 -- ========== ANIMATION LOG ENTRY ==========
 local function addLogEntry(data)
-	local animPauseKey = getAnimationPauseKey(data)
-	if pausedIndividualAnimations[animPauseKey] then
-		pausedAnimationIndividualArchive[animPauseKey] = data
-		if pausedAnimationsFrame.Visible then
-			if rebuildPausedAnimationsPopup then
-				rebuildPausedAnimationsPopup()
-			end
-		end
-		return
-	end
-
 	if animLogPaused then
 		filteredCount += 1
 		pausedAnimationArchive[#pausedAnimationArchive + 1] = data
@@ -2436,7 +2036,7 @@ end)
 -- ========== REMOTE LOG ENTRY ==========
 local remoteEntries = {}
 
-applyRemoteFilter = function()
+local function applyRemoteFilter()
 	local searchLower = remoteSearchText:lower()
 	for _, entryData in ipairs(remoteEntries) do
 		local btn = entryData.button
@@ -2457,12 +2057,10 @@ end
 
 searchBox:GetPropertyChangedSignal("Text"):Connect(function()
 	remoteSearchText = searchBox.Text
-	if applyRemoteFilter then
-		applyRemoteFilter()
-	end
+	applyRemoteFilter()
 end)
 
-addRemoteEntry = function(data)
+local function addRemoteEntry(data)
 	if remoteLogPaused then return end
 	if remoteFilterLocal and data.player ~= localPlayer then return end
 
@@ -2542,9 +2140,7 @@ addRemoteEntry = function(data)
 	end)
 
 	table.insert(remoteEntries, {button = entry, remoteName = data.remoteName, player = data.player, data = data})
-	if applyRemoteFilter then
-		applyRemoteFilter()
-	end
+	applyRemoteFilter()
 
 	task.defer(function()
 		remoteScroll.CanvasPosition = Vector2.new(0, remoteScroll.AbsoluteCanvasSize.Y)
@@ -2552,16 +2148,76 @@ addRemoteEntry = function(data)
 end
 
 openPausedRemotesBtn.MouseButton1Click:Connect(function()
-	pausedRemotesFrame.Visible = true
-	if rebuildPausedRemotesPopup then
-		rebuildPausedRemotesPopup()
+	for _, c in ipairs(remoteScroll:GetChildren()) do
+		if c:IsA("TextButton") then c:Destroy() end
+	end
+	remoteEntries = {}
+	remoteCount = 0
+	selectedRemoteData = nil
+	selectedRemoteEntry = nil
+	remDetailFrame.Visible = false
+
+	local names = {}
+	for rName, data in pairs(pausedRemoteArchive) do
+		if pausedIndividualRemotes[rName] and data then
+			table.insert(names, rName)
+		end
+	end
+	table.sort(names)
+
+	local wasPaused = remoteLogPaused
+	remoteLogPaused = false
+	for _, rName in ipairs(names) do
+		local data = pausedRemoteArchive[rName]
+		if data then
+			addRemoteEntry(data)
+		end
+	end
+	remoteLogPaused = wasPaused
+
+	local restored = #names
+	openPausedRemotesBtn.Text = ("Opened %d paused"):format(restored)
+	task.delay(1.3, function()
+		if openPausedRemotesBtn and openPausedRemotesBtn.Parent then
+			openPausedRemotesBtn.Text = "Open Paused Remotes"
+		end
+	end)
+	updateStatus()
+	if remDetailFrame.Visible and selectedRemoteData then
+		showRemoteDetail(selectedRemoteData)
 	end
 end)
 
 openPausedAnimationsBtn.MouseButton1Click:Connect(function()
-	pausedAnimationsFrame.Visible = true
-	if rebuildPausedAnimationsPopup then
-		rebuildPausedAnimationsPopup()
+	for _, c in ipairs(scrollFrame:GetChildren()) do
+		if c:IsA("TextButton") then c:Destroy() end
+	end
+	animEntries = {}
+	detectionCount = 0
+	filteredCount = 0
+	currentAnimDetail = nil
+	detailFrame.Visible = false
+
+	local restored = 0
+	local wasPaused = animLogPaused
+	animLogPaused = false
+	for _, data in ipairs(pausedAnimationArchive) do
+		if data then
+			addLogEntry(data)
+			restored += 1
+		end
+	end
+	animLogPaused = wasPaused
+
+	openPausedAnimationsBtn.Text = ("Opened %d paused"):format(restored)
+	task.delay(1.3, function()
+		if openPausedAnimationsBtn and openPausedAnimationsBtn.Parent then
+			openPausedAnimationsBtn.Text = "Open Paused Animations"
+		end
+	end)
+	updateStatus()
+	if detailFrame.Visible and currentAnimDetail then
+		refreshAnimDetail()
 	end
 end)
 
@@ -2796,15 +2452,4 @@ end
 
 if type(setupRemoteSpy) == "function" then
 	pcall(setupRemoteSpy)
-end
-end, function(err)
-	local trace = ""
-	if debug and type(debug.traceback) == "function" then
-		trace = debug.traceback(nil, 2)
-	end
-	return tostring(err) .. (trace ~= "" and ("\n" .. trace) or "")
-end)
-
-if not __BOOT_OK then
-	warn("[BootError] " .. tostring(__BOOT_ERR))
 end
