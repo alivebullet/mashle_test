@@ -1831,15 +1831,28 @@ end)
 
 rdRunCodeBtn.MouseButton1Click:Connect(function()
 	if not selectedRemoteData then return end
-	local code = buildCode(selectedRemoteData.remote, selectedRemoteData.method, selectedRemoteData.argsStr)
-	local fn, compErr = loadstring(code)
-	if fn then
-		local ok, runErr = pcall(fn)
-		if ok then flashRd(rdRunCodeBtn, "✔ Done!", "▶ Run Code")
-		else warn("[RemoteSpy] Runtime:", runErr); flashRd(rdRunCodeBtn, "⚠ Error!", "▶ Run Code") end
+	local data = selectedRemoteData
+	local remote = data.remote
+	local args = data.args or {}
+	local ok, runErr
+
+	if data.method == "FireServer" and remote and remote:IsA("RemoteEvent") then
+		ok, runErr = pcall(function()
+			remote:FireServer(unpack(args))
+		end)
+	elseif data.method == "InvokeServer" and remote and remote:IsA("RemoteFunction") then
+		ok, runErr = pcall(function()
+			remote:InvokeServer(unpack(args))
+		end)
 	else
-		warn("[RemoteSpy] Parse:", compErr); print("[RemoteSpy] Code:", code)
-		flashRd(rdRunCodeBtn, "⚠ Parse Err", "▶ Run Code")
+		ok, runErr = false, "Remote is missing or method/type does not match."
+	end
+
+	if ok then
+		flashRd(rdRunCodeBtn, "✔ Done!", "▶ Run Code")
+	else
+		warn("[RemoteSpy] Runtime:", runErr)
+		flashRd(rdRunCodeBtn, "⚠ Error!", "▶ Run Code")
 	end
 end)
 
@@ -2288,15 +2301,28 @@ copyPathBtn.MouseButton1Click:Connect(function()
 end)
 runCodeBtn.MouseButton1Click:Connect(function()
 	if not selectedRemoteData then flashBtn(runCodeBtn,"Select entry!","Run Code"); return end
-	local code = buildCode(selectedRemoteData.remote, selectedRemoteData.method, selectedRemoteData.argsStr)
-	local fn, err = loadstring(code)
-	if fn then
-		local ok, re = pcall(fn)
-		if ok then flashBtn(runCodeBtn,"Done!","Run Code")
-		else warn("[RemoteSpy] Runtime:", re); flashBtn(runCodeBtn,"Error!","Run Code") end
+	local data = selectedRemoteData
+	local remote = data.remote
+	local args = data.args or {}
+	local ok, re
+
+	if data.method == "FireServer" and remote and remote:IsA("RemoteEvent") then
+		ok, re = pcall(function()
+			remote:FireServer(unpack(args))
+		end)
+	elseif data.method == "InvokeServer" and remote and remote:IsA("RemoteFunction") then
+		ok, re = pcall(function()
+			remote:InvokeServer(unpack(args))
+		end)
 	else
-		warn("[RemoteSpy] Parse:", err); print("[RemoteSpy] Code:", code)
-		flashBtn(runCodeBtn,"Parse Err!","Run Code")
+		ok, re = false, "Remote is missing or method/type does not match."
+	end
+
+	if ok then
+		flashBtn(runCodeBtn,"Done!","Run Code")
+	else
+		warn("[RemoteSpy] Runtime:", re)
+		flashBtn(runCodeBtn,"Error!","Run Code")
 	end
 end)
 clearRemBtn.MouseButton1Click:Connect(function()
