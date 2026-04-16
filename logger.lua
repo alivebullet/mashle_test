@@ -2366,126 +2366,52 @@ workspace.DescendantAdded:Connect(function(d)
 end)
 
 -- ========== REMOTE DETECTION ==========
-local REMOTE_HOOK_TEST_PHASE = 1
--- 1 = Empty __namecall passthrough test
--- 2 = __index remote wrapper test (no __namecall hook)
-
 local function setupRemoteSpy()
 	if not hookmetamethod then
 		warn("[RemoteSpy] hookmetamethod not available — remote tab will stay empty.")
 		return
 	end
-	if REMOTE_HOOK_TEST_PHASE == 1 then
-		local oldNamecall
-		oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+
+	local oldNamecall
+	oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+		local method = getnamecallmethod()
+
+		if method ~= "FireServer" and method ~= "InvokeServer" then
 			return oldNamecall(self, ...)
-		end))
-		print("[RemoteSpy] Phase 1 active: empty __namecall passthrough hook.")
-		return
-	end
+		end
 
-	if REMOTE_HOOK_TEST_PHASE == 2 then
-		local oldIndex
-		local fireWrappers = setmetatable({}, { __mode = "k" })
-		local invokeWrappers = setmetatable({}, { __mode = "k" })
+		if typeof(self) == "Instance"
+			and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+			and (not checkcaller or not checkcaller())
+			and not pausedIndividualRemotes[self.Name] then
+			local remote = self
+			local remoteName = self.Name
+			local args = {...}
 
-		oldIndex = hookmetamethod(game, "__index", newcclosure(function(self, key)
-			local value = oldIndex(self, key)
+			task.defer(function()
+				local okSer, argsStr = pcall(serializeArgs, args)
+				if not okSer then argsStr = "..." end
 
-			if checkcaller and checkcaller() then
-				return value
-			end
+				local preview = argsStr ~= "" and ("(" .. argsStr .. ")") or "()"
+				if #preview > 64 then preview = preview:sub(1, 61) .. "..." end
 
-			if typeof(self) ~= "Instance" then
-				return value
-			end
+				pcall(addRemoteEntry, {
+					remote = remote,
+					remoteName = remoteName,
+					method = method,
+					args = args,
+					argsStr = argsStr,
+					argsPreview = preview,
+					timestamp = os.date("%H:%M:%S"),
+					player = localPlayer,
+				})
+			end)
+		end
 
-			if key == "FireServer" and self:IsA("RemoteEvent") and typeof(value) == "function" then
-				local wrapper = fireWrappers[self]
-				if wrapper then return wrapper end
+		return oldNamecall(self, ...)
+	end))
 
-				wrapper = newcclosure(function(remoteSelf, ...)
-					if pausedIndividualRemotes[self.Name] then
-						return value(remoteSelf, ...)
-					end
-
-					local packedArgs = table.pack(...)
-					local returns = table.pack(value(remoteSelf, unpackArgs(packedArgs, 1, packedArgs.n)))
-
-					task.spawn(function()
-						local remote = typeof(remoteSelf) == "Instance" and remoteSelf or self
-						local okSer, argsStr = pcall(serializeArgs, packedArgs)
-						if not okSer then argsStr = "..." end
-
-						local preview = argsStr ~= "" and ("(" .. argsStr .. ")") or "()"
-						if #preview > 64 then preview = preview:sub(1, 61) .. "..." end
-
-						pcall(addRemoteEntry, {
-							remote = remote,
-							remoteName = remote.Name,
-							method = "FireServer",
-							args = packedArgs,
-							argsStr = argsStr,
-							argsPreview = preview,
-							timestamp = os.date("%H:%M:%S"),
-							player = localPlayer,
-						})
-					end)
-
-					return unpackArgs(returns, 1, returns.n)
-				end)
-
-				fireWrappers[self] = wrapper
-				return wrapper
-			end
-
-			if key == "InvokeServer" and self:IsA("RemoteFunction") and typeof(value) == "function" then
-				local wrapper = invokeWrappers[self]
-				if wrapper then return wrapper end
-
-				wrapper = newcclosure(function(remoteSelf, ...)
-					if pausedIndividualRemotes[self.Name] then
-						return value(remoteSelf, ...)
-					end
-
-					local packedArgs = table.pack(...)
-					local returns = table.pack(value(remoteSelf, unpackArgs(packedArgs, 1, packedArgs.n)))
-
-					task.spawn(function()
-						local remote = typeof(remoteSelf) == "Instance" and remoteSelf or self
-						local okSer, argsStr = pcall(serializeArgs, packedArgs)
-						if not okSer then argsStr = "..." end
-
-						local preview = argsStr ~= "" and ("(" .. argsStr .. ")") or "()"
-						if #preview > 64 then preview = preview:sub(1, 61) .. "..." end
-
-						pcall(addRemoteEntry, {
-							remote = remote,
-							remoteName = remote.Name,
-							method = "InvokeServer",
-							args = packedArgs,
-							argsStr = argsStr,
-							argsPreview = preview,
-							timestamp = os.date("%H:%M:%S"),
-							player = localPlayer,
-						})
-					end)
-
-					return unpackArgs(returns, 1, returns.n)
-				end)
-
-				invokeWrappers[self] = wrapper
-				return wrapper
-			end
-
-			return value
-		end))
-
-		print("[RemoteSpy] Phase 2 active: __index remote wrapper hook.")
-		return
-	end
-
-	warn("[RemoteSpy] Unknown REMOTE_HOOK_TEST_PHASE. Use 1 or 2.")
+	print("[RemoteSpy] __namecall hook active — remote logging enabled.")
 end
 
 pcall(setupRemoteSpy)
