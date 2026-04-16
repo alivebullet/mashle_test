@@ -13,7 +13,7 @@ local MAX_WIDTH, MAX_HEIGHT = 1200, 900
 
 local localPlayer = Players.LocalPlayer
 local playerGui   = localPlayer:WaitForChild("PlayerGui")
- 
+
 -- ========== THEME CONSTANTS ==========
 local Theme = {
 	Background     = Color3.fromRGB(25, 25, 30),
@@ -321,10 +321,93 @@ mkCorner(mainCloseBtn, 4)
 
 mainCloseBtn.MouseEnter:Connect(function() mainCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
 mainCloseBtn.MouseLeave:Connect(function() mainCloseBtn.BackgroundColor3 = Theme.ButtonDanger end)
+
+local confirmFrame = Instance.new("Frame")
+confirmFrame.Size = UDim2.new(0, 320, 0, 140)
+confirmFrame.Position = UDim2.new(0.5, -160, 0.5, -70)
+confirmFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+confirmFrame.BorderSizePixel = 0
+confirmFrame.Visible = false
+confirmFrame.Parent = screenGui
+mkCorner(confirmFrame, 10)
+mkStroke(confirmFrame, Color3.fromRGB(80, 80, 100))
+
+local confirmTitle = Instance.new("TextLabel")
+confirmTitle.Size = UDim2.new(1, -20, 0, 28)
+confirmTitle.Position = UDim2.new(0, 10, 0, 10)
+confirmTitle.BackgroundTransparency = 1
+confirmTitle.Text = "Confirm Permanent Close"
+confirmTitle.TextColor3 = Color3.fromRGB(240, 240, 250)
+confirmTitle.Font = Enum.Font.GothamBold
+confirmTitle.TextSize = 14
+confirmTitle.TextXAlignment = Enum.TextXAlignment.Left
+confirmTitle.Parent = confirmFrame
+
+local confirmText = Instance.new("TextLabel")
+confirmText.Size = UDim2.new(1, -20, 0, 60)
+confirmText.Position = UDim2.new(0, 10, 0, 45)
+confirmText.BackgroundTransparency = 1
+confirmText.Text = "Do you want to permanently close the script?\nYes will destroy all UI created by this script."
+confirmText.TextColor3 = Color3.fromRGB(200, 200, 210)
+confirmText.Font = Enum.Font.Gotham
+confirmText.TextSize = 12
+confirmText.TextWrapped = true
+confirmText.TextYAlignment = Enum.TextYAlignment.Top
+confirmText.Parent = confirmFrame
+
+local confirmButtons = Instance.new("Frame")
+confirmButtons.Size = UDim2.new(1, -20, 0, 36)
+confirmButtons.Position = UDim2.new(0, 10, 1, -46)
+confirmButtons.BackgroundTransparency = 1
+confirmButtons.Parent = confirmFrame
+
+local confirmYes = Instance.new("TextButton")
+confirmYes.Size = UDim2.new(0.48, 0, 1, 0)
+confirmYes.Position = UDim2.new(0, 0, 0, 0)
+confirmYes.BackgroundColor3 = Color3.fromRGB(120, 60, 60)
+confirmYes.Text = "Yes"
+confirmYes.TextColor3 = Theme.TextPrimary
+confirmYes.Font = Enum.Font.GothamBold
+confirmYes.TextSize = 12
+confirmYes.BorderSizePixel = 0
+confirmYes.Parent = confirmButtons
+mkCorner(confirmYes, 6)
+
+local confirmNo = Instance.new("TextButton")
+confirmNo.Size = UDim2.new(0.48, 0, 1, 0)
+confirmNo.Position = UDim2.new(0.52, 0, 0, 0)
+confirmNo.BackgroundColor3 = Color3.fromRGB(60, 80, 120)
+confirmNo.Text = "No"
+confirmNo.TextColor3 = Theme.TextPrimary
+confirmNo.Font = Enum.Font.GothamBold
+confirmNo.TextSize = 12
+confirmNo.BorderSizePixel = 0
+confirmNo.Parent = confirmButtons
+mkCorner(confirmNo, 6)
+
+local function destroyScriptUI()
+	if screenGui and screenGui.Parent then screenGui:Destroy() end
+	if detailFrame and detailFrame.Parent then detailFrame:Destroy() end
+	if remDetailFrame and remDetailFrame.Parent then remDetailFrame:Destroy() end
+end
+
 mainCloseBtn.MouseButton1Click:Connect(function()
-	mainFrame.Visible = false;
-	reopenBtn.Visible = true
+	if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift) then
+		confirmFrame.Visible = true
+	else
+		mainFrame.Visible = false;
+		reopenBtn.Visible = true
+	end
 end)
+
+confirmYes.MouseButton1Click:Connect(function()
+	destroyScriptUI()
+end)
+
+confirmNo.MouseButton1Click:Connect(function()
+	confirmFrame.Visible = false
+end)
+
 reopenBtn.MouseButton1Click:Connect(function()
 	mainFrame.Visible = true; reopenBtn.Visible = false
 end)
