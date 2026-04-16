@@ -753,8 +753,8 @@ mkCorner(colorPreviewSwatch, 4)
 mkStroke(colorPreviewSwatch, Color3.fromRGB(85, 85, 105))
 
 local colorPickerFrame = Instance.new("Frame")
-colorPickerFrame.Size = UDim2.new(0, 220, 0, 190)
-colorPickerFrame.Position = UDim2.new(1, -230, 0, 54)
+colorPickerFrame.Size = UDim2.new(0, 220, 0, 128)
+colorPickerFrame.Position = UDim2.new(1, -230, 0, 116)
 colorPickerFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
 colorPickerFrame.BorderSizePixel = 0
 colorPickerFrame.Visible = false
@@ -775,57 +775,109 @@ colorPickerTitle.TextSize = 10
 colorPickerTitle.ZIndex = 9
 colorPickerTitle.Parent = colorPickerFrame
 
-local wheelContainer = Instance.new("Frame")
-wheelContainer.Size = UDim2.new(0, 154, 0, 154)
-wheelContainer.Position = UDim2.new(0.5, -77, 0, 26)
-wheelContainer.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
-wheelContainer.BorderSizePixel = 0
-wheelContainer.ZIndex = 9
-wheelContainer.Parent = colorPickerFrame
-mkCorner(wheelContainer, 77)
-mkStroke(wheelContainer, Color3.fromRGB(58, 58, 74))
+local hueLabel = Instance.new("TextLabel")
+hueLabel.Size = UDim2.new(0, 56, 0, 16)
+hueLabel.Position = UDim2.new(0, 8, 0, 28)
+hueLabel.BackgroundTransparency = 1
+hueLabel.Text = "Hue"
+hueLabel.TextColor3 = Theme.TextSecondary
+hueLabel.TextXAlignment = Enum.TextXAlignment.Left
+hueLabel.Font = Enum.Font.Gotham
+hueLabel.TextSize = 10
+hueLabel.ZIndex = 9
+hueLabel.Parent = colorPickerFrame
 
-local colorWheel = Instance.new("ImageLabel")
-colorWheel.Size = UDim2.new(0, 146, 0, 146)
-colorWheel.Position = UDim2.new(0.5, -73, 0.5, -73)
-colorWheel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-colorWheel.BackgroundTransparency = 1
-colorWheel.BorderSizePixel = 0
-colorWheel.ZIndex = 10
-colorWheel.Image = "rbxassetid://698052001"
-colorWheel.Parent = wheelContainer
-mkCorner(colorWheel, 73)
+local hueValueLabel = Instance.new("TextLabel")
+hueValueLabel.Size = UDim2.new(0, 42, 0, 16)
+hueValueLabel.Position = UDim2.new(1, -50, 0, 28)
+hueValueLabel.BackgroundTransparency = 1
+hueValueLabel.Text = "0°"
+hueValueLabel.TextColor3 = Theme.TextMuted
+hueValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+hueValueLabel.Font = Enum.Font.Gotham
+hueValueLabel.TextSize = 10
+hueValueLabel.ZIndex = 9
+hueValueLabel.Parent = colorPickerFrame
 
-local colorWheelInput = Instance.new("TextButton")
-colorWheelInput.Size = UDim2.new(1, 0, 1, 0)
-colorWheelInput.BackgroundTransparency = 1
-colorWheelInput.Text = ""
-colorWheelInput.AutoButtonColor = false
-colorWheelInput.ZIndex = 11
-colorWheelInput.Parent = colorWheel
+local hueTrack = Instance.new("Frame")
+hueTrack.Size = UDim2.new(1, -74, 0, 10)
+hueTrack.Position = UDim2.new(0, 64, 0, 31)
+hueTrack.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+hueTrack.BorderSizePixel = 0
+hueTrack.Active = true
+hueTrack.ZIndex = 9
+hueTrack.Parent = colorPickerFrame
+mkCorner(hueTrack, 5)
 
-local colorWheelCursor = Instance.new("Frame")
-colorWheelCursor.Size = UDim2.new(0, 14, 0, 14)
-colorWheelCursor.Position = UDim2.new(0.5, -7, 0.5, -7)
-colorWheelCursor.BackgroundTransparency = 1
-colorWheelCursor.BorderSizePixel = 0
-colorWheelCursor.ZIndex = 12
-colorWheelCursor.Parent = colorWheel
-local cursorInner = Instance.new("Frame")
-cursorInner.Size = UDim2.new(1, 0, 1, 0)
-cursorInner.BackgroundTransparency = 1
-cursorInner.BorderSizePixel = 0
-cursorInner.Parent = colorWheelCursor
-mkCorner(cursorInner, 7)
-mkStroke(cursorInner, Color3.fromRGB(255, 255, 255), 2)
-local cursorOuter = Instance.new("Frame")
-cursorOuter.Size = UDim2.new(1, 4, 1, 4)
-cursorOuter.Position = UDim2.new(0, -2, 0, -2)
-cursorOuter.BackgroundTransparency = 1
-cursorOuter.BorderSizePixel = 0
-cursorOuter.Parent = colorWheelCursor
-mkCorner(cursorOuter, 9)
-mkStroke(cursorOuter, Color3.fromRGB(0, 0, 0))
+local hueGradient = Instance.new("UIGradient")
+hueGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 0)),
+	ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 255, 0)),
+	ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
+	ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 255, 255)),
+	ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+	ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
+	ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 0)),
+})
+hueGradient.Parent = hueTrack
+
+local hueKnob = Instance.new("Frame")
+hueKnob.Size = UDim2.new(0, 12, 0, 12)
+hueKnob.Position = UDim2.new(0, -6, 0.5, -6)
+hueKnob.BackgroundColor3 = Color3.fromRGB(230, 230, 240)
+hueKnob.BorderSizePixel = 0
+hueKnob.ZIndex = 10
+hueKnob.Parent = hueTrack
+mkCorner(hueKnob, 6)
+mkStroke(hueKnob, Color3.fromRGB(20, 20, 24))
+
+local satLabel = Instance.new("TextLabel")
+satLabel.Size = UDim2.new(0, 56, 0, 16)
+satLabel.Position = UDim2.new(0, 8, 0, 54)
+satLabel.BackgroundTransparency = 1
+satLabel.Text = "Saturation"
+satLabel.TextColor3 = Theme.TextSecondary
+satLabel.TextXAlignment = Enum.TextXAlignment.Left
+satLabel.Font = Enum.Font.Gotham
+satLabel.TextSize = 10
+satLabel.ZIndex = 9
+satLabel.Parent = colorPickerFrame
+
+local satValueLabel = Instance.new("TextLabel")
+satValueLabel.Size = UDim2.new(0, 42, 0, 16)
+satValueLabel.Position = UDim2.new(1, -50, 0, 54)
+satValueLabel.BackgroundTransparency = 1
+satValueLabel.Text = "100%"
+satValueLabel.TextColor3 = Theme.TextMuted
+satValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+satValueLabel.Font = Enum.Font.Gotham
+satValueLabel.TextSize = 10
+satValueLabel.ZIndex = 9
+satValueLabel.Parent = colorPickerFrame
+
+local satTrack = Instance.new("Frame")
+satTrack.Size = UDim2.new(1, -74, 0, 10)
+satTrack.Position = UDim2.new(0, 64, 0, 57)
+satTrack.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+satTrack.BorderSizePixel = 0
+satTrack.Active = true
+satTrack.ZIndex = 9
+satTrack.Parent = colorPickerFrame
+mkCorner(satTrack, 5)
+
+local satGradient = Instance.new("UIGradient")
+satGradient.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(75, 130, 255))
+satGradient.Parent = satTrack
+
+local satKnob = Instance.new("Frame")
+satKnob.Size = UDim2.new(0, 12, 0, 12)
+satKnob.Position = UDim2.new(1, -6, 0.5, -6)
+satKnob.BackgroundColor3 = Color3.fromRGB(230, 230, 240)
+satKnob.BorderSizePixel = 0
+satKnob.ZIndex = 10
+satKnob.Parent = satTrack
+mkCorner(satKnob, 6)
+mkStroke(satKnob, Color3.fromRGB(20, 20, 24))
 
 local opacitySlider = createSimpleSlider(settingsPanel, 214, "Opacity", 0, 100)
 opacitySlider.fill.BackgroundColor3 = Color3.fromRGB(120, 120, 170)
@@ -1081,14 +1133,11 @@ local function updateColorPickerUI()
 	local color = Color3.fromRGB(rangeColorR, rangeColorG, rangeColorB)
 	colorPreviewSwatch.BackgroundColor3 = color
 	colorHexLabel.Text = ("#%02X%02X%02X"):format(rangeColorR, rangeColorG, rangeColorB)
-	local halfW = colorWheel.AbsoluteSize.X * 0.5
-	local halfH = colorWheel.AbsoluteSize.Y * 0.5
-	local wheelR = math.max(1, math.min(halfW, halfH))
-	local angle = rangeHue * (math.pi * 2)
-	local radius = math.clamp(rangeSat, 0, 1) * wheelR
-	local cx = halfW + math.cos(angle) * radius
-	local cy = halfH - math.sin(angle) * radius
-	colorWheelCursor.Position = UDim2.new(0, math.floor(cx - 7), 0, math.floor(cy - 7))
+	hueKnob.Position = UDim2.new(math.clamp(rangeHue, 0, 1), -6, 0.5, -6)
+	hueValueLabel.Text = ("%d°"):format(math.floor((rangeHue * 360) + 0.5) % 360)
+	satKnob.Position = UDim2.new(math.clamp(rangeSat, 0, 1), -6, 0.5, -6)
+	satValueLabel.Text = ("%d%%"):format(math.floor((rangeSat * 100) + 0.5))
+	satGradient.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromHSV(rangeHue, 1, 1))
 end
 
 local function setRangeColorFromHSV(h, s, v)
@@ -1237,40 +1286,33 @@ local function beginSliderDrag(updateFn, inputPos)
 	updateFn(inputPos)
 end
 
-local wheelDragging = false
-
-local function updateWheelFromMouse()
-	local mousePos = UserInputService:GetMouseLocation()
-	local guiInset = game:GetService("GuiService"):GetGuiInset()
-	local screenPos = Vector2.new(mousePos.X, mousePos.Y - guiInset.Y)
-	local centerX = colorWheel.AbsolutePosition.X + (colorWheel.AbsoluteSize.X * 0.5)
-	local centerY = colorWheel.AbsolutePosition.Y + (colorWheel.AbsoluteSize.Y * 0.5)
-	local wheelR = math.max(1, math.min(colorWheel.AbsoluteSize.X, colorWheel.AbsoluteSize.Y) * 0.5)
-	local dx = screenPos.X - centerX
-	local dy = screenPos.Y - centerY
-	local dist = math.sqrt(dx * dx + dy * dy)
-	local sat = math.clamp(dist / wheelR, 0, 1)
-	local ang = math.atan(-dy, dx)
-	local hue = (ang / (math.pi * 2)) % 1
-	setRangeColorFromHSV(hue, sat, 1)
+local function updateHueFromInput(inputX)
+	local left = hueTrack.AbsolutePosition.X
+	local width = math.max(1, hueTrack.AbsoluteSize.X)
+	local hue = math.clamp((inputX - left) / width, 0, 1)
+	setRangeColorFromHSV(hue, rangeSat, 1)
 end
 
-colorWheelInput.InputBegan:Connect(function(i)
+local function updateSaturationFromInput(inputX)
+	local left = satTrack.AbsolutePosition.X
+	local width = math.max(1, satTrack.AbsoluteSize.X)
+	local sat = math.clamp((inputX - left) / width, 0, 1)
+	setRangeColorFromHSV(rangeHue, sat, 1)
+end
+
+hueTrack.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-		wheelDragging = true
-		updateWheelFromMouse()
+		beginSliderDrag(function(pos)
+			updateHueFromInput(pos.X)
+		end, i.Position)
 	end
 end)
 
-UserInputService.InputChanged:Connect(function(i)
-	if wheelDragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-		updateWheelFromMouse()
-	end
-end)
-
-UserInputService.InputEnded:Connect(function(i)
+satTrack.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-		wheelDragging = false
+		beginSliderDrag(function(pos)
+			updateSaturationFromInput(pos.X)
+		end, i.Position)
 	end
 end)
 
@@ -1303,14 +1345,6 @@ colorPreviewSwatch.MouseButton1Click:Connect(function()
 	colorPickerFrame.Visible = open
 	colorPickerToggleBtn.Text = open and "Close Picker" or "Pick Color"
 end)
-
-local function bindPickerDrag(guiObj, fn)
-	guiObj.InputBegan:Connect(function(i)
-		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-			beginSliderDrag(fn, i.Position)
-		end
-	end)
-end
 
 UserInputService.InputChanged:Connect(function(i)
 	if not activeSliderUpdate then return end
