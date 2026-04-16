@@ -1,8 +1,11 @@
 -- AnimationDetectorUI.lua
 -- LocalScript — place in StarterPlayerScripts
+-- Enhanced version with pause, search, export, player filtering, theme constants, and better cleanup.
 
 local Players          = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local CollectionService = game:GetService("CollectionService")
+local RunService       = game:GetService("RunService")
 
 local DETECTION_RADIUS      = 100
 local MAX_LOG_ENTRIES       = 100
@@ -12,8 +15,28 @@ local MAX_WIDTH, MAX_HEIGHT = 1200, 900
 local localPlayer = Players.LocalPlayer
 local playerGui   = localPlayer:WaitForChild("PlayerGui")
 
--- ========== FILTER CONFIG ==========
+-- ========== THEME CONSTANTS ==========
+local Theme = {
+	Background     = Color3.fromRGB(25, 25, 30),
+	TitleBar       = Color3.fromRGB(35, 35, 45),
+	TabActive      = Color3.fromRGB(55, 45, 72),
+	TabInactive    = Color3.fromRGB(30, 30, 40),
+	TabTextActive  = Color3.fromRGB(230, 200, 255),
+	TabTextInactive= Color3.fromRGB(160, 160, 175),
+	EntryBg        = Color3.fromRGB(30, 30, 38),
+	EntryHover     = Color3.fromRGB(45, 45, 58),
+	EntrySelected  = Color3.fromRGB(35, 45, 65),
+	ButtonDefault  = Color3.fromRGB(70, 70, 85),
+	ButtonSuccess  = Color3.fromRGB(42, 112, 72),
+	ButtonDanger   = Color3.fromRGB(180, 60, 60),
+	StrokeColor    = Color3.fromRGB(60, 60, 70),
+	ScrollBarColor = Color3.fromRGB(100, 100, 120),
+	TextPrimary    = Color3.fromRGB(230, 230, 240),
+	TextSecondary  = Color3.fromRGB(200, 200, 210),
+	TextMuted      = Color3.fromRGB(160, 160, 175),
+}
 
+-- ========== FILTER CONFIG ==========
 local IGNORED_NAME_PATTERNS = {
 	"run","walk","idle","jump","fall","climb","swim","sit","wave","point",
 	"cheer","laugh","dance","pose","stand","mood","emote","toollunge","toolhold",
@@ -50,7 +73,6 @@ local function shouldLogAnimation(animName, animId)
 end
 
 -- ========== REMOTE HELPERS ==========
-
 local function getRemotePath(remote)
 	if not remote then return "nil" end
 	local ok, result = pcall(function()
@@ -162,19 +184,22 @@ local function tryClipboard(text)
 end
 
 -- ========== UI HELPERS ==========
-
 local function mkCorner(parent, r)
 	local c = Instance.new("UICorner", parent)
 	c.CornerRadius = UDim.new(0, r or 6)
 end
 local function mkStroke(parent, color, thick)
 	local s = Instance.new("UIStroke", parent)
-	s.Color = color or Color3.fromRGB(60, 60, 70)
+	s.Color = color or Theme.StrokeColor
 	s.Thickness = thick or 1
 end
 
--- ========== SCREEN GUI ==========
+-- ========== CLEANUP OLD UI ==========
+if playerGui:FindFirstChild("AnimationDetectorUI") then
+	playerGui.AnimationDetectorUI:Destroy()
+end
 
+-- ========== SCREEN GUI ==========
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name           = "AnimationDetectorUI"
 screenGui.ResetOnSpawn   = false
@@ -200,16 +225,16 @@ local mainFrame = Instance.new("Frame")
 mainFrame.Name             = "MainFrame"
 mainFrame.Size             = UDim2.new(0, 450, 0, 360)
 mainFrame.Position         = UDim2.new(0, 20, 0, 80)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+mainFrame.BackgroundColor3 = Theme.Background
 mainFrame.BorderSizePixel  = 0
 mainFrame.Active           = true
 mainFrame.Parent           = screenGui
-mkCorner(mainFrame, 8); mkStroke(mainFrame, Color3.fromRGB(60, 60, 70))
+mkCorner(mainFrame, 8); mkStroke(mainFrame)
 
 -- ===== Title Bar =====
 local titleBar = Instance.new("Frame")
 titleBar.Size             = UDim2.new(1, 0, 0, 32)
-titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+titleBar.BackgroundColor3 = Theme.TitleBar
 titleBar.BorderSizePixel  = 0
 titleBar.Active           = true
 titleBar.Parent           = mainFrame
@@ -229,9 +254,9 @@ titleLabel.Parent             = titleBar
 local strictBtn = Instance.new("TextButton")
 strictBtn.Size             = UDim2.new(0, 60, 0, 22)
 strictBtn.Position         = UDim2.new(1, -170, 0, 5)
-strictBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 85)
+strictBtn.BackgroundColor3 = Theme.ButtonDefault
 strictBtn.Text             = "Strict: OFF"
-strictBtn.TextColor3       = Color3.fromRGB(230, 230, 240)
+strictBtn.TextColor3       = Theme.TextPrimary
 strictBtn.Font             = Enum.Font.Gotham
 strictBtn.TextSize         = 10
 strictBtn.BorderSizePixel  = 0
@@ -241,9 +266,9 @@ mkCorner(strictBtn, 4)
 local clearBtn = Instance.new("TextButton")
 clearBtn.Size             = UDim2.new(0, 50, 0, 22)
 clearBtn.Position         = UDim2.new(1, -102, 0, 5)
-clearBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 85)
+clearBtn.BackgroundColor3 = Theme.ButtonDefault
 clearBtn.Text             = "Clear"
-clearBtn.TextColor3       = Color3.fromRGB(230, 230, 240)
+clearBtn.TextColor3       = Theme.TextPrimary
 clearBtn.Font             = Enum.Font.Gotham
 clearBtn.TextSize         = 11
 clearBtn.BorderSizePixel  = 0
@@ -253,16 +278,16 @@ mkCorner(clearBtn, 4)
 local mainCloseBtn = Instance.new("TextButton")
 mainCloseBtn.Size             = UDim2.new(0, 24, 0, 22)
 mainCloseBtn.Position         = UDim2.new(1, -30, 0, 5)
-mainCloseBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+mainCloseBtn.BackgroundColor3 = Theme.ButtonDanger
 mainCloseBtn.Text             = "X"
-mainCloseBtn.TextColor3       = Color3.fromRGB(240, 240, 240)
+mainCloseBtn.TextColor3       = Theme.TextPrimary
 mainCloseBtn.Font             = Enum.Font.GothamBold
 mainCloseBtn.TextSize         = 12
 mainCloseBtn.BorderSizePixel  = 0
 mainCloseBtn.Parent           = titleBar
 mkCorner(mainCloseBtn, 4)
 mainCloseBtn.MouseEnter:Connect(function() mainCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
-mainCloseBtn.MouseLeave:Connect(function() mainCloseBtn.BackgroundColor3 = Color3.fromRGB(180,60,60) end)
+mainCloseBtn.MouseLeave:Connect(function() mainCloseBtn.BackgroundColor3 = Theme.ButtonDanger end)
 mainCloseBtn.MouseButton1Click:Connect(function()
 	mainFrame.Visible = false; reopenBtn.Visible = true
 end)
@@ -281,9 +306,9 @@ tabBar.Parent           = mainFrame
 local animTabBtn = Instance.new("TextButton")
 animTabBtn.Size             = UDim2.new(0.5, -4, 1, -6)
 animTabBtn.Position         = UDim2.new(0, 4, 0, 3)
-animTabBtn.BackgroundColor3 = Color3.fromRGB(55, 45, 72)
+animTabBtn.BackgroundColor3 = Theme.TabActive
 animTabBtn.Text             = "🎬  Animations"
-animTabBtn.TextColor3       = Color3.fromRGB(230, 200, 255)
+animTabBtn.TextColor3       = Theme.TabTextActive
 animTabBtn.Font             = Enum.Font.GothamBold
 animTabBtn.TextSize         = 11
 animTabBtn.BorderSizePixel  = 0
@@ -293,9 +318,9 @@ mkCorner(animTabBtn, 4)
 local remoteTabBtn = Instance.new("TextButton")
 remoteTabBtn.Size             = UDim2.new(0.5, -4, 1, -6)
 remoteTabBtn.Position         = UDim2.new(0.5, 0, 0, 3)
-remoteTabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+remoteTabBtn.BackgroundColor3 = Theme.TabInactive
 remoteTabBtn.Text             = "📡  Remotes"
-remoteTabBtn.TextColor3       = Color3.fromRGB(160, 160, 175)
+remoteTabBtn.TextColor3       = Theme.TabTextInactive
 remoteTabBtn.Font             = Enum.Font.Gotham
 remoteTabBtn.TextSize         = 11
 remoteTabBtn.BorderSizePixel  = 0
@@ -328,7 +353,7 @@ scrollFrame.Position           = UDim2.new(0, 8, 0, 0)
 scrollFrame.BackgroundColor3   = Color3.fromRGB(15, 15, 20)
 scrollFrame.BorderSizePixel    = 0
 scrollFrame.ScrollBarThickness = 6
-scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120)
+scrollFrame.ScrollBarImageColor3 = Theme.ScrollBarColor
 scrollFrame.CanvasSize         = UDim2.new(0, 0, 0, 0)
 scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 scrollFrame.Parent             = animContent
@@ -346,13 +371,37 @@ remoteContent.BackgroundTransparency = 1
 remoteContent.Visible           = false
 remoteContent.Parent            = mainFrame
 
+-- Search bar for remotes
+local remoteSearchFrame = Instance.new("Frame")
+remoteSearchFrame.Size = UDim2.new(1, -16, 0, 26)
+remoteSearchFrame.Position = UDim2.new(0, 8, 0, 0)
+remoteSearchFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 23)
+remoteSearchFrame.BorderSizePixel = 0
+remoteSearchFrame.Parent = remoteContent
+mkCorner(remoteSearchFrame, 4)
+
+local searchBox = Instance.new("TextBox")
+searchBox.Size = UDim2.new(1, -10, 1, -6)
+searchBox.Position = UDim2.new(0, 5, 0, 3)
+searchBox.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+searchBox.Text = ""
+searchBox.PlaceholderText = "🔍 Filter remotes..."
+searchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 160)
+searchBox.TextColor3 = Theme.TextPrimary
+searchBox.Font = Enum.Font.Gotham
+searchBox.TextSize = 11
+searchBox.BorderSizePixel = 0
+searchBox.ClearTextOnFocus = false
+searchBox.Parent = remoteSearchFrame
+mkCorner(searchBox, 4)
+
 local remoteScroll = Instance.new("ScrollingFrame")
-remoteScroll.Size               = UDim2.new(1, -16, 1, -46)
-remoteScroll.Position           = UDim2.new(0, 8, 0, 0)
+remoteScroll.Size               = UDim2.new(1, -16, 1, -78)
+remoteScroll.Position           = UDim2.new(0, 8, 0, 32)
 remoteScroll.BackgroundColor3   = Color3.fromRGB(15, 15, 20)
 remoteScroll.BorderSizePixel    = 0
 remoteScroll.ScrollBarThickness = 6
-remoteScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120)
+remoteScroll.ScrollBarImageColor3 = Theme.ScrollBarColor
 remoteScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
 remoteScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 remoteScroll.Parent             = remoteContent
@@ -383,7 +432,7 @@ for i = 1, 4 do
 	btn.Position         = UDim2.new((i-1)*0.25, (i==1 and 5 or 3), 0, 5)
 	btn.BackgroundColor3 = ACTION_COLORS[i]
 	btn.Text             = ACTION_LABELS[i]
-	btn.TextColor3       = Color3.fromRGB(235, 235, 240)
+	btn.TextColor3       = Theme.TextPrimary
 	btn.Font             = Enum.Font.Gotham; btn.TextSize = 10
 	btn.BorderSizePixel  = 0; btn.AutoButtonColor = false
 	btn.Parent           = remoteActionBar
@@ -395,14 +444,53 @@ end
 local copyCodeBtn, copyPathBtn, runCodeBtn, clearRemBtn =
 	actionBtns[1], actionBtns[2], actionBtns[3], actionBtns[4]
 
+-- Pause logging toggle for remotes
+local pauseRemotesBtn = Instance.new("TextButton")
+pauseRemotesBtn.Size = UDim2.new(0, 60, 0, 22)
+pauseRemotesBtn.Position = UDim2.new(0, 5, 0, -30) -- relative to action bar
+pauseRemotesBtn.BackgroundColor3 = Theme.ButtonDefault
+pauseRemotesBtn.Text = "⏸ Pause"
+pauseRemotesBtn.TextColor3 = Theme.TextPrimary
+pauseRemotesBtn.Font = Enum.Font.Gotham
+pauseRemotesBtn.TextSize = 10
+pauseRemotesBtn.BorderSizePixel = 0
+pauseRemotesBtn.Parent = remoteActionBar
+mkCorner(pauseRemotesBtn, 4)
+
+-- Export logs button for remotes
+local exportRemotesBtn = Instance.new("TextButton")
+exportRemotesBtn.Size = UDim2.new(0, 60, 0, 22)
+exportRemotesBtn.Position = UDim2.new(1, -70, 0, -30)
+exportRemotesBtn.BackgroundColor3 = Theme.ButtonDefault
+exportRemotesBtn.Text = "📤 Export"
+exportRemotesBtn.TextColor3 = Theme.TextPrimary
+exportRemotesBtn.Font = Enum.Font.Gotham
+exportRemotesBtn.TextSize = 10
+exportRemotesBtn.BorderSizePixel = 0
+exportRemotesBtn.Parent = remoteActionBar
+mkCorner(exportRemotesBtn, 4)
+
+-- Filter by local player toggle
+local localPlayerFilterBtn = Instance.new("TextButton")
+localPlayerFilterBtn.Size = UDim2.new(0, 70, 0, 22)
+localPlayerFilterBtn.Position = UDim2.new(0.5, -35, 0, -30)
+localPlayerFilterBtn.BackgroundColor3 = Theme.ButtonDefault
+localPlayerFilterBtn.Text = "👤 All"
+localPlayerFilterBtn.TextColor3 = Theme.TextPrimary
+localPlayerFilterBtn.Font = Enum.Font.Gotham
+localPlayerFilterBtn.TextSize = 10
+localPlayerFilterBtn.BorderSizePixel = 0
+localPlayerFilterBtn.Parent = remoteActionBar
+mkCorner(localPlayerFilterBtn, 4)
+
 -- ===== Resize grip (main) =====
 local resizeGrip = Instance.new("TextButton")
 resizeGrip.Size                   = UDim2.new(0, 16, 0, 16)
 resizeGrip.Position               = UDim2.new(1, -18, 1, -18)
-resizeGrip.BackgroundColor3       = Color3.fromRGB(100, 100, 120)
+resizeGrip.BackgroundColor3       = Theme.ScrollBarColor
 resizeGrip.BackgroundTransparency = 0.4
 resizeGrip.Text                   = "⇲"
-resizeGrip.TextColor3             = Color3.fromRGB(230, 230, 240)
+resizeGrip.TextColor3             = Theme.TextPrimary
 resizeGrip.Font                   = Enum.Font.GothamBold; resizeGrip.TextSize = 12
 resizeGrip.BorderSizePixel        = 0; resizeGrip.AutoButtonColor = false
 resizeGrip.Parent                 = mainFrame
@@ -411,11 +499,10 @@ resizeGrip.MouseEnter:Connect(function() resizeGrip.BackgroundTransparency = 0  
 resizeGrip.MouseLeave:Connect(function() resizeGrip.BackgroundTransparency = 0.4 end)
 
 -- ========== ANIMATION DETAIL PANEL ==========
-
 local detailFrame = Instance.new("Frame")
 detailFrame.Size             = UDim2.new(0, 360, 0, 420)
 detailFrame.Position         = UDim2.new(0, 490, 0, 80)
-detailFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+detailFrame.BackgroundColor3 = Theme.Background
 detailFrame.BorderSizePixel  = 0
 detailFrame.Visible          = false
 detailFrame.Active           = true
@@ -442,13 +529,13 @@ detailTitleLabel.Parent             = detailTitleBar
 local animCloseBtn = Instance.new("TextButton")
 animCloseBtn.Size             = UDim2.new(0, 24, 0, 22)
 animCloseBtn.Position         = UDim2.new(1, -30, 0, 5)
-animCloseBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
-animCloseBtn.Text             = "X"; animCloseBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
+animCloseBtn.BackgroundColor3 = Theme.ButtonDanger
+animCloseBtn.Text             = "X"; animCloseBtn.TextColor3 = Theme.TextPrimary
 animCloseBtn.Font             = Enum.Font.GothamBold; animCloseBtn.TextSize = 12
 animCloseBtn.BorderSizePixel  = 0; animCloseBtn.Parent = detailTitleBar
 mkCorner(animCloseBtn, 4)
 animCloseBtn.MouseEnter:Connect(function() animCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
-animCloseBtn.MouseLeave:Connect(function() animCloseBtn.BackgroundColor3 = Color3.fromRGB(180,60,60) end)
+animCloseBtn.MouseLeave:Connect(function() animCloseBtn.BackgroundColor3 = Theme.ButtonDanger end)
 animCloseBtn.MouseButton1Click:Connect(function() detailFrame.Visible = false end)
 
 local animDetailScroll = Instance.new("ScrollingFrame")
@@ -457,7 +544,7 @@ animDetailScroll.Position           = UDim2.new(0, 8, 0, 40)
 animDetailScroll.BackgroundColor3   = Color3.fromRGB(15, 15, 20)
 animDetailScroll.BorderSizePixel    = 0
 animDetailScroll.ScrollBarThickness = 6
-animDetailScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120)
+animDetailScroll.ScrollBarImageColor3 = Theme.ScrollBarColor
 animDetailScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
 animDetailScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 animDetailScroll.Parent             = detailFrame
@@ -483,7 +570,7 @@ copyIdBtn.Size             = UDim2.new(0.5, -12, 0, 28)
 copyIdBtn.Position         = UDim2.new(0, 8, 1, -36)
 copyIdBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 120)
 copyIdBtn.Text             = "Print ID to Console"
-copyIdBtn.TextColor3       = Color3.fromRGB(240, 240, 240)
+copyIdBtn.TextColor3       = Theme.TextPrimary
 copyIdBtn.Font             = Enum.Font.Gotham; copyIdBtn.TextSize = 11
 copyIdBtn.BorderSizePixel  = 0; copyIdBtn.Parent = detailFrame
 mkCorner(copyIdBtn, 4)
@@ -493,18 +580,29 @@ ignoreBtn.Size             = UDim2.new(0.5, -12, 0, 28)
 ignoreBtn.Position         = UDim2.new(0.5, 4, 1, -36)
 ignoreBtn.BackgroundColor3 = Color3.fromRGB(120, 80, 60)
 ignoreBtn.Text             = "Add ID to Ignore List"
-ignoreBtn.TextColor3       = Color3.fromRGB(240, 240, 240)
+ignoreBtn.TextColor3       = Theme.TextPrimary
 ignoreBtn.Font             = Enum.Font.Gotham; ignoreBtn.TextSize = 11
 ignoreBtn.BorderSizePixel  = 0; ignoreBtn.Parent = detailFrame
 mkCorner(ignoreBtn, 4)
 
+-- Refresh button for animation detail
+local refreshAnimBtn = Instance.new("TextButton")
+refreshAnimBtn.Size = UDim2.new(1, -16, 0, 22)
+refreshAnimBtn.Position = UDim2.new(0, 8, 1, -64)
+refreshAnimBtn.BackgroundColor3 = Theme.ButtonDefault
+refreshAnimBtn.Text = "🔄 Refresh"
+refreshAnimBtn.TextColor3 = Theme.TextPrimary
+refreshAnimBtn.Font = Enum.Font.Gotham; refreshAnimBtn.TextSize = 10
+refreshAnimBtn.BorderSizePixel = 0; refreshAnimBtn.Parent = detailFrame
+mkCorner(refreshAnimBtn, 4)
+
 local animDetailResizeGrip = Instance.new("TextButton")
 animDetailResizeGrip.Size                   = UDim2.new(0, 16, 0, 16)
 animDetailResizeGrip.Position               = UDim2.new(1, -18, 1, -18)
-animDetailResizeGrip.BackgroundColor3       = Color3.fromRGB(100, 100, 120)
+animDetailResizeGrip.BackgroundColor3       = Theme.ScrollBarColor
 animDetailResizeGrip.BackgroundTransparency = 0.4
 animDetailResizeGrip.Text                   = "⇲"
-animDetailResizeGrip.TextColor3             = Color3.fromRGB(230, 230, 240)
+animDetailResizeGrip.TextColor3             = Theme.TextPrimary
 animDetailResizeGrip.Font                   = Enum.Font.GothamBold; animDetailResizeGrip.TextSize = 12
 animDetailResizeGrip.BorderSizePixel        = 0; animDetailResizeGrip.AutoButtonColor = false
 animDetailResizeGrip.Parent                 = detailFrame
@@ -513,7 +611,6 @@ animDetailResizeGrip.MouseEnter:Connect(function() animDetailResizeGrip.Backgrou
 animDetailResizeGrip.MouseLeave:Connect(function() animDetailResizeGrip.BackgroundTransparency = 0.4 end)
 
 -- ========== REMOTE DETAIL PANEL ==========
-
 local remDetailFrame = Instance.new("Frame")
 remDetailFrame.Name             = "RemoteDetailFrame"
 remDetailFrame.Size             = UDim2.new(0, 390, 0, 480)
@@ -548,13 +645,13 @@ rdTitleLabel.Parent             = rdTitleBar
 local rdCloseBtn = Instance.new("TextButton")
 rdCloseBtn.Size             = UDim2.new(0, 24, 0, 22)
 rdCloseBtn.Position         = UDim2.new(1, -30, 0, 5)
-rdCloseBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
-rdCloseBtn.Text             = "X"; rdCloseBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
+rdCloseBtn.BackgroundColor3 = Theme.ButtonDanger
+rdCloseBtn.Text             = "X"; rdCloseBtn.TextColor3 = Theme.TextPrimary
 rdCloseBtn.Font             = Enum.Font.GothamBold; rdCloseBtn.TextSize = 12
 rdCloseBtn.BorderSizePixel  = 0; rdCloseBtn.Parent = rdTitleBar
 mkCorner(rdCloseBtn, 4)
 rdCloseBtn.MouseEnter:Connect(function() rdCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
-rdCloseBtn.MouseLeave:Connect(function() rdCloseBtn.BackgroundColor3 = Color3.fromRGB(180,60,60) end)
+rdCloseBtn.MouseLeave:Connect(function() rdCloseBtn.BackgroundColor3 = Theme.ButtonDanger end)
 rdCloseBtn.MouseButton1Click:Connect(function() remDetailFrame.Visible = false end)
 
 -- Scrollable content area
@@ -600,7 +697,7 @@ local function makeRdBtn(label, color, idx, total)
 	btn.Position         = UDim2.new(w*(idx-1), (idx==1 and 5 or 3), 0, 5)
 	btn.BackgroundColor3 = color
 	btn.Text             = label
-	btn.TextColor3       = Color3.fromRGB(235, 235, 240)
+	btn.TextColor3       = Theme.TextPrimary
 	btn.Font             = Enum.Font.Gotham; btn.TextSize = 10
 	btn.BorderSizePixel  = 0; btn.AutoButtonColor = false
 	btn.Parent           = rdBtnBar
@@ -630,8 +727,6 @@ rdResizeGrip.MouseEnter:Connect(function() rdResizeGrip.BackgroundTransparency =
 rdResizeGrip.MouseLeave:Connect(function() rdResizeGrip.BackgroundTransparency = 0.4 end)
 
 -- ========== DRAG / RESIZE ==========
-
--- Generic drag/resize using table-wrapped booleans for shared closure state
 local function bindDrag(bar, frame)
 	local active, origin, startP = false, nil, nil
 	bar.InputBegan:Connect(function(i)
@@ -696,7 +791,6 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 -- ========== STATE ==========
-
 local detectionCount      = 0
 local filteredCount       = 0
 local remoteCount         = 0
@@ -706,32 +800,36 @@ local currentAnimDetail   = nil
 local selectedRemoteData  = nil
 local selectedRemoteEntry = nil
 local activeTab           = "animations"
+local animLogPaused       = false
+local remoteLogPaused     = false
+local remoteFilterLocal   = false  -- show only local player's remotes
+local remoteSearchText    = ""
 
 -- ========== STATUS ==========
-
 local function updateStatus()
 	if activeTab == "animations" then
-		statusLabel.Text       = ("Detected: %d  |  Filtered: %d"):format(detectionCount, filteredCount)
+		local pauseIndicator = animLogPaused and " ⏸" or ""
+		statusLabel.Text       = ("Detected: %d  |  Filtered: %d%s"):format(detectionCount, filteredCount, pauseIndicator)
 		statusLabel.TextColor3 = Color3.fromRGB(160, 200, 255)
 	else
-		statusLabel.Text       = ("Logged: %d  |  Click an entry to inspect"):format(remoteCount)
+		local pauseIndicator = remoteLogPaused and " ⏸" or ""
+		statusLabel.Text       = ("Logged: %d%s  |  Click entry to inspect"):format(remoteCount, pauseIndicator)
 		statusLabel.TextColor3 = Color3.fromRGB(155, 225, 180)
 	end
 end
 
 -- ========== TAB SWITCHING ==========
-
 local function setTab(tab)
 	activeTab = tab
 	if tab == "animations" then
 		animContent.Visible    = true
 		remoteContent.Visible  = false
 		remDetailFrame.Visible = false
-		animTabBtn.BackgroundColor3   = Color3.fromRGB(55, 45, 72)
-		animTabBtn.TextColor3         = Color3.fromRGB(230, 200, 255)
+		animTabBtn.BackgroundColor3   = Theme.TabActive
+		animTabBtn.TextColor3         = Theme.TabTextActive
 		animTabBtn.Font               = Enum.Font.GothamBold
-		remoteTabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-		remoteTabBtn.TextColor3       = Color3.fromRGB(160, 160, 175)
+		remoteTabBtn.BackgroundColor3 = Theme.TabInactive
+		remoteTabBtn.TextColor3       = Theme.TabTextInactive
 		remoteTabBtn.Font             = Enum.Font.Gotham
 		strictBtn.Visible = true; clearBtn.Visible = true
 	else
@@ -741,10 +839,11 @@ local function setTab(tab)
 		remoteTabBtn.BackgroundColor3 = Color3.fromRGB(28, 40, 62)
 		remoteTabBtn.TextColor3       = Color3.fromRGB(150, 205, 255)
 		remoteTabBtn.Font             = Enum.Font.GothamBold
-		animTabBtn.BackgroundColor3   = Color3.fromRGB(30, 30, 40)
-		animTabBtn.TextColor3         = Color3.fromRGB(160, 160, 175)
+		animTabBtn.BackgroundColor3   = Theme.TabInactive
+		animTabBtn.TextColor3         = Theme.TabTextInactive
 		animTabBtn.Font               = Enum.Font.Gotham
 		strictBtn.Visible = false; clearBtn.Visible = false
+		applyRemoteFilter()  -- reapply search filter when tab shown
 	end
 	updateStatus()
 end
@@ -754,26 +853,57 @@ remoteTabBtn.MouseButton1Click:Connect(function() setTab("remotes")   end)
 strictBtn.MouseButton1Click:Connect(function()
 	strictMode = not strictMode
 	strictBtn.Text             = strictMode and "Strict: ON" or "Strict: OFF"
-	strictBtn.BackgroundColor3 = strictMode and Color3.fromRGB(120,60,60) or Color3.fromRGB(70,70,85)
+	strictBtn.BackgroundColor3 = strictMode and Color3.fromRGB(120,60,60) or Theme.ButtonDefault
+end)
+
+-- Pause toggles
+local pauseAnimBtn
+do
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 60, 0, 22)
+	btn.Position = UDim2.new(0, 5, 0, -28)
+	btn.BackgroundColor3 = Theme.ButtonDefault
+	btn.Text = "⏸ Pause"
+	btn.TextColor3 = Theme.TextPrimary
+	btn.Font = Enum.Font.Gotham
+	btn.TextSize = 10
+	btn.BorderSizePixel = 0
+	btn.Parent = animContent
+	mkCorner(btn, 4)
+	pauseAnimBtn = btn
+end
+pauseAnimBtn.MouseButton1Click:Connect(function()
+	animLogPaused = not animLogPaused
+	pauseAnimBtn.Text = animLogPaused and "▶ Resume" or "⏸ Pause"
+	updateStatus()
+end)
+
+pauseRemotesBtn.MouseButton1Click:Connect(function()
+	remoteLogPaused = not remoteLogPaused
+	pauseRemotesBtn.Text = remoteLogPaused and "▶ Resume" or "⏸ Pause"
+	updateStatus()
+end)
+
+localPlayerFilterBtn.MouseButton1Click:Connect(function()
+	remoteFilterLocal = not remoteFilterLocal
+	localPlayerFilterBtn.Text = remoteFilterLocal and "👤 Local" or "👤 All"
+	localPlayerFilterBtn.BackgroundColor3 = remoteFilterLocal and Color3.fromRGB(60,100,60) or Theme.ButtonDefault
+	applyRemoteFilter()
 end)
 
 -- ========== RICH TEXT HELPERS ==========
-
 local function bT(s)     return "<b>"..s.."</b>" end
 local function cT(s, h)  return ('<font color="#%s">%s</font>'):format(h, s) end
 local function sec(name) return "\n"..cT("— "..name.." —", "5599DD").."\n" end
 local function safeGet(fn) local ok,r = pcall(fn); return ok and r or "N/A" end
 
 -- ========== REMOTE DETAIL VIEW ==========
-
 local function showRemoteDetail(data)
 	selectedRemoteData     = data
 	remDetailFrame.Visible = true
 
-	-- Show the remote name in the title bar
 	rdTitleLabel.Text = "📡  " .. (data.remoteName or "Remote")
 
-	-- Remote metadata
 	local remoteType = safeGet(function()
 		return data.remote:IsA("RemoteEvent") and "RemoteEvent" or "RemoteFunction"
 	end)
@@ -782,7 +912,6 @@ local function showRemoteDetail(data)
 	end)
 	local fullPath = getRemotePath(data.remote)
 
-	-- Per-argument blocks with type colouring
 	local TYPE_COLORS = {
 		string   = "88CC88", number  = "88CCFF", boolean = "FFCC66",
 		Instance = "CC88FF", table   = "FF9966", Vector3 = "66DDCC",
@@ -800,9 +929,7 @@ local function showRemoteDetail(data)
 			local ok, serialized = pcall(deepSerializeArg, v, 0, "  ")
 			if not ok then serialized = tostring(v) end
 
-			-- Header: [1] string
 			local header = cT(bT(("[%d]"):format(i)), "CCCCDD") .. "  " .. cT(t, typeColor)
-			-- Value (indented, wrapped)
 			local valueStr = cT(serialized, "C8D4E8")
 			table.insert(argBlocks, header .. "\n  " .. valueStr)
 		end
@@ -834,7 +961,6 @@ local function showRemoteDetail(data)
 	rdScroll.CanvasPosition = Vector2.new(0, 0)
 end
 
--- Remote detail panel bottom buttons
 local function flashRd(btn, msg, orig)
 	btn.Text = msg; task.delay(1.3, function() btn.Text = orig end)
 end
@@ -868,11 +994,9 @@ rdRunCodeBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ========== ANIMATION DETAIL VIEW ==========
-
-local function showAnimDetailView(data)
-	currentAnimDetail    = data
-	detailFrame.Visible  = true
-
+local function refreshAnimDetail()
+	if not currentAnimDetail then return end
+	local data = currentAnimDetail
 	local track    = data.track
 	local character = data.character
 	local humanoid = data.humanoid
@@ -892,6 +1016,7 @@ local function showAnimDetailView(data)
 	local player   = Players:GetPlayerFromCharacter(character)
 	local charName = character and character.Name or "Unknown"
 	local dispName = player and player.DisplayName or "(NPC)"
+	local userName = player and ("@"..player.Name) or ""
 	local userId   = player and tostring(player.UserId) or "N/A"
 	local accAge   = player and (tostring(player.AccountAge).." days") or "N/A"
 	local teamName = player and (player.Team and player.Team.Name or "No team") or "N/A"
@@ -940,6 +1065,7 @@ local function showAnimDetailView(data)
 		section("👤 CHARACTER"),
 		bText("Name: ")         .. charName,
 		bText("Display Name: ") .. dispName,
+		bText("Username: ")     .. userName,
 		bText("Is Player: ")    .. (player and "Yes" or "No (NPC)"),
 		bText("User ID: ")      .. userId,
 		bText("Account Age: ")  .. accAge,
@@ -962,6 +1088,12 @@ local function showAnimDetailView(data)
 	animDetailScroll.CanvasPosition = Vector2.new(0, 0)
 end
 
+local function showAnimDetailView(data)
+	currentAnimDetail    = data
+	detailFrame.Visible  = true
+	refreshAnimDetail()
+end
+
 copyIdBtn.MouseButton1Click:Connect(function()
 	if currentAnimDetail then
 		print("[AnimDetect] ID:",      currentAnimDetail.animId)
@@ -980,10 +1112,11 @@ ignoreBtn.MouseButton1Click:Connect(function()
 		end
 	end
 end)
+refreshAnimBtn.MouseButton1Click:Connect(refreshAnimDetail)
 
 -- ========== ANIMATION LOG ENTRY ==========
-
 local function addLogEntry(data)
+	if animLogPaused then filteredCount += 1; updateStatus(); return end
 	detectionCount += 1; updateStatus()
 
 	local children = {}
@@ -997,15 +1130,18 @@ local function addLogEntry(data)
 
 	entryOrder += 1
 	local entry = Instance.new("TextButton")
-	entry.Size = UDim2.new(1,-4,0,38); entry.BackgroundColor3 = Color3.fromRGB(30,30,38)
+	entry.Size = UDim2.new(1,-4,0,38); entry.BackgroundColor3 = Theme.EntryBg
 	entry.BorderSizePixel = 0; entry.LayoutOrder = entryOrder
 	entry.AutoButtonColor = false; entry.Text = ""; entry.Parent = scrollFrame
 	mkCorner(entry, 4)
 
+	local player = Players:GetPlayerFromCharacter(data.character)
+	local displayName = player and (player.DisplayName .. " (@" .. player.Name .. ")") or data.character.Name
+
 	local top = Instance.new("TextLabel", entry)
 	top.Size = UDim2.new(1,-8,0,16); top.Position = UDim2.new(0,6,0,2)
 	top.BackgroundTransparency = 1
-	top.Text = ("[%s] %s — %.1f studs"):format(data.timestamp, data.character.Name, data.distance)
+	top.Text = ("[%s] %s — %.1f studs"):format(data.timestamp, displayName, data.distance)
 	top.TextColor3 = Color3.fromRGB(255,160,140); top.TextXAlignment = Enum.TextXAlignment.Left
 	top.Font = Enum.Font.GothamBold; top.TextSize = 11
 
@@ -1013,11 +1149,11 @@ local function addLogEntry(data)
 	bot.Size = UDim2.new(1,-8,0,16); bot.Position = UDim2.new(0,6,0,18)
 	bot.BackgroundTransparency = 1
 	bot.Text = ("%s  (%s)"):format(data.animName, data.animId)
-	bot.TextColor3 = Color3.fromRGB(200,200,210); bot.TextXAlignment = Enum.TextXAlignment.Left
+	bot.TextColor3 = Theme.TextSecondary; bot.TextXAlignment = Enum.TextXAlignment.Left
 	bot.Font = Enum.Font.Code; bot.TextSize = 10; bot.TextTruncate = Enum.TextTruncate.AtEnd
 
-	entry.MouseEnter:Connect(function()  entry.BackgroundColor3 = Color3.fromRGB(45,45,58) end)
-	entry.MouseLeave:Connect(function()  entry.BackgroundColor3 = Color3.fromRGB(30,30,38) end)
+	entry.MouseEnter:Connect(function()  entry.BackgroundColor3 = Theme.EntryHover end)
+	entry.MouseLeave:Connect(function()  entry.BackgroundColor3 = Theme.EntryBg end)
 	entry.MouseButton1Click:Connect(function() showAnimDetailView(data) end)
 	task.defer(function()
 		scrollFrame.CanvasPosition = Vector2.new(0, scrollFrame.AbsoluteCanvasSize.Y)
@@ -1032,8 +1168,35 @@ clearBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ========== REMOTE LOG ENTRY ==========
+local remoteEntries = {} -- for filtering
+
+local function applyRemoteFilter()
+	local searchLower = remoteSearchText:lower()
+	for _, entryData in ipairs(remoteEntries) do
+		local btn = entryData.button
+		if not btn then continue end
+		local visible = true
+		if remoteFilterLocal and entryData.player ~= localPlayer then
+			visible = false
+		end
+		if visible and searchLower ~= "" then
+			if not string.find(entryData.remoteName:lower(), searchLower, 1, true) then
+				visible = false
+			end
+		end
+		btn.Visible = visible
+	end
+end
+
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+	remoteSearchText = searchBox.Text
+	applyRemoteFilter()
+end)
 
 local function addRemoteEntry(data)
+	if remoteLogPaused then return end
+	if remoteFilterLocal and data.player ~= localPlayer then return end
+
 	remoteCount += 1; updateStatus()
 
 	local children = {}
@@ -1042,7 +1205,15 @@ local function addRemoteEntry(data)
 	end
 	if #children >= MAX_LOG_ENTRIES then
 		table.sort(children, function(a,b) return a.LayoutOrder < b.LayoutOrder end)
-		children[1]:Destroy()
+		local oldest = children[1]
+		-- remove from remoteEntries table too
+		for i, e in ipairs(remoteEntries) do
+			if e.button == oldest then
+				table.remove(remoteEntries, i)
+				break
+			end
+		end
+		oldest:Destroy()
 	end
 
 	entryOrder += 1
@@ -1051,7 +1222,7 @@ local function addRemoteEntry(data)
 	local fgBadge = isFire and Color3.fromRGB(255,185,90) or Color3.fromRGB(110,200,255)
 
 	local entry = Instance.new("TextButton")
-	entry.Size = UDim2.new(1,-4,0,44); entry.BackgroundColor3 = Color3.fromRGB(28,28,36)
+	entry.Size = UDim2.new(1,-4,0,44); entry.BackgroundColor3 = Theme.EntryBg
 	entry.BorderSizePixel = 0; entry.LayoutOrder = entryOrder
 	entry.AutoButtonColor = false; entry.Text = ""; entry.Parent = remoteScroll
 	mkCorner(entry, 4)
@@ -1085,30 +1256,54 @@ local function addRemoteEntry(data)
 
 	entry.MouseEnter:Connect(function()
 		if selectedRemoteEntry ~= entry then
-			entry.BackgroundColor3 = Color3.fromRGB(40,40,52)
+			entry.BackgroundColor3 = Theme.EntryHover
 		end
 	end)
 	entry.MouseLeave:Connect(function()
 		if selectedRemoteEntry ~= entry then
-			entry.BackgroundColor3 = Color3.fromRGB(28,28,36)
+			entry.BackgroundColor3 = Theme.EntryBg
 		end
 	end)
 	entry.MouseButton1Click:Connect(function()
 		if selectedRemoteEntry and selectedRemoteEntry ~= entry then
-			selectedRemoteEntry.BackgroundColor3 = Color3.fromRGB(28,28,36)
+			selectedRemoteEntry.BackgroundColor3 = Theme.EntryBg
 		end
 		selectedRemoteEntry = entry
-		entry.BackgroundColor3 = Color3.fromRGB(35,45,65)
-		showRemoteDetail(data)   -- <-- opens the detail panel
+		entry.BackgroundColor3 = Theme.EntrySelected
+		showRemoteDetail(data)
 	end)
+
+	-- Store for filtering
+	table.insert(remoteEntries, {button = entry, remoteName = data.remoteName, player = data.player})
+	applyRemoteFilter()  -- apply current filter to new entry
 
 	task.defer(function()
 		remoteScroll.CanvasPosition = Vector2.new(0, remoteScroll.AbsoluteCanvasSize.Y)
 	end)
 end
 
--- ========== ACTION BAR BUTTONS (log-panel, duplicates detail-panel for quick access) ==========
+-- Export remotes
+exportRemotesBtn.MouseButton1Click:Connect(function()
+	local lines = {}
+	for _, e in ipairs(remoteEntries) do
+		if e.button.Visible then
+			local data = e.data
+			if data then
+				lines[#lines+1] = ("[%s] %s:%s(%s)"):format(
+					data.timestamp, data.remoteName, data.method, data.argsStr)
+			end
+		end
+	end
+	local exportText = table.concat(lines, "\n")
+	if tryClipboard(exportText) then
+		flashRd(exportRemotesBtn, "✔ Exported!", "📤 Export")
+	else
+		print("[RemoteSpy] Exported logs:\n" .. exportText)
+		flashRd(exportRemotesBtn, "Printed!", "📤 Export")
+	end
+end)
 
+-- ========== ACTION BAR BUTTONS ==========
 local function flashBtn(btn, msg, orig)
 	btn.Text = msg; task.delay(1.3, function() btn.Text = orig end)
 end
@@ -1142,14 +1337,12 @@ clearRemBtn.MouseButton1Click:Connect(function()
 	for _, c in ipairs(remoteScroll:GetChildren()) do
 		if c:IsA("TextButton") then c:Destroy() end
 	end
+	remoteEntries = {}
 	remoteCount = 0; selectedRemoteData = nil; selectedRemoteEntry = nil
 	remDetailFrame.Visible = false; updateStatus()
 end)
 
 -- ========== ANIMATION DETECTION ==========
-
-local trackedHumanoids = {}
-
 local function getOriginPosition()
 	local c = localPlayer.Character
 	if c and c:FindFirstChild("HumanoidRootPart") then
@@ -1181,9 +1374,15 @@ local function onAnimationPlayed(humanoid, animationTrack)
 	})
 end
 
+-- Humanoid tracking with CollectionService
+local HUMAN_TAG = "AnimDetectTracked"
+local tracked = {}
+
 local function trackHumanoid(humanoid)
-	if trackedHumanoids[humanoid] then return end
-	trackedHumanoids[humanoid] = true
+	if tracked[humanoid] then return end
+	tracked[humanoid] = true
+	CollectionService:AddTag(humanoid, HUMAN_TAG)
+
 	local animator = humanoid:FindFirstChildOfClass("Animator")
 	if not animator then
 		animator = humanoid:WaitForChild("Animator", 5)
@@ -1192,18 +1391,21 @@ local function trackHumanoid(humanoid)
 	animator.AnimationPlayed:Connect(function(track)
 		onAnimationPlayed(humanoid, track)
 	end)
-	humanoid.Destroying:Connect(function() trackedHumanoids[humanoid] = nil end)
+	humanoid.Destroying:Connect(function()
+		tracked[humanoid] = nil
+	end)
 end
 
+-- Initial scan
 for _, d in ipairs(workspace:GetDescendants()) do
 	if d:IsA("Humanoid") then trackHumanoid(d) end
 end
+
 workspace.DescendantAdded:Connect(function(d)
 	if d:IsA("Humanoid") then trackHumanoid(d) end
 end)
 
 -- ========== REMOTE DETECTION ==========
-
 local function setupRemoteSpy()
 	if not getrawmetatable then
 		warn("[RemoteSpy] getrawmetatable not available — remote tab will stay empty.")
@@ -1214,7 +1416,8 @@ local function setupRemoteSpy()
 	if setreadonly then setreadonly(mt, false) end
 
 	local function hook(self, ...)
-		local method = getnamecallmethod()
+		local method = "Unknown"
+		pcall(function() method = getnamecallmethod() end)  -- safe fallback
 		if (method == "FireServer" or method == "InvokeServer")
 			and typeof(self) == "Instance"
 			and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) then
@@ -1234,6 +1437,7 @@ local function setupRemoteSpy()
 					argsStr     = argsStr,
 					argsPreview = preview,
 					timestamp   = os.date("%H:%M:%S"),
+					player      = localPlayer, -- assume client fires for itself
 				})
 			end)
 		end
