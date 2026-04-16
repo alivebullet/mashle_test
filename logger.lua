@@ -1082,6 +1082,7 @@ local addRemoteEntry
 local refreshPauseAnimDetailButton
 local rebuildPausedRemotesPopup
 local rebuildPausedAnimationsPopup
+local applyRemoteFilter
 local detectionRadius     = DEFAULT_DETECTION_RADIUS
 local previousTab         = "animations"
 local activeSliderUpdate  = nil
@@ -1272,7 +1273,9 @@ local function setTab(tab)
 		clearBtn.Visible        = false
 		pauseAnimBtn.Visible    = false
 		pauseRemotesBtn.Visible = true
-		applyRemoteFilter()  -- reapply search filter when tab shown
+		if applyRemoteFilter then
+			applyRemoteFilter()  -- reapply search filter when tab shown
+		end
 	else
 		animContent.Visible     = false
 		remoteContent.Visible   = false
@@ -1325,7 +1328,9 @@ localPlayerFilterBtn.MouseButton1Click:Connect(function()
 	remoteFilterLocal = not remoteFilterLocal
 	localPlayerFilterBtn.Text = remoteFilterLocal and "Local" or "All"
 	localPlayerFilterBtn.BackgroundColor3 = remoteFilterLocal and Color3.fromRGB(60,100,60) or Theme.ButtonDefault
-	applyRemoteFilter()
+	if applyRemoteFilter then
+		applyRemoteFilter()
+	end
 end)
 
 local function updateSliderFromInputX(inputX)
@@ -1672,7 +1677,9 @@ rdPauseBtn.MouseButton1Click:Connect(function()
 	end
 
 	if pausedRemotesFrame.Visible then
-		rebuildPausedRemotesPopup()
+		if rebuildPausedRemotesPopup then
+			rebuildPausedRemotesPopup()
+		end
 	end
 end)
 
@@ -2330,7 +2337,9 @@ pauseAnimDetailBtn.MouseButton1Click:Connect(function()
 	end
 	refreshPauseAnimDetailButton()
 	if pausedAnimationsFrame.Visible then
-		rebuildPausedAnimationsPopup()
+		if rebuildPausedAnimationsPopup then
+			rebuildPausedAnimationsPopup()
+		end
 	end
 end)
 
@@ -2348,7 +2357,9 @@ local function addLogEntry(data)
 	if pausedIndividualAnimations[animPauseKey] then
 		pausedAnimationIndividualArchive[animPauseKey] = data
 		if pausedAnimationsFrame.Visible then
-			rebuildPausedAnimationsPopup()
+			if rebuildPausedAnimationsPopup then
+				rebuildPausedAnimationsPopup()
+			end
 		end
 		return
 	end
@@ -2424,7 +2435,7 @@ end)
 -- ========== REMOTE LOG ENTRY ==========
 local remoteEntries = {}
 
-local function applyRemoteFilter()
+applyRemoteFilter = function()
 	local searchLower = remoteSearchText:lower()
 	for _, entryData in ipairs(remoteEntries) do
 		local btn = entryData.button
@@ -2444,7 +2455,9 @@ end
 
 searchBox:GetPropertyChangedSignal("Text"):Connect(function()
 	remoteSearchText = searchBox.Text
-	applyRemoteFilter()
+	if applyRemoteFilter then
+		applyRemoteFilter()
+	end
 end)
 
 addRemoteEntry = function(data)
@@ -2527,7 +2540,9 @@ addRemoteEntry = function(data)
 	end)
 
 	table.insert(remoteEntries, {button = entry, remoteName = data.remoteName, player = data.player, data = data})
-	applyRemoteFilter()
+	if applyRemoteFilter then
+		applyRemoteFilter()
+	end
 
 	task.defer(function()
 		remoteScroll.CanvasPosition = Vector2.new(0, remoteScroll.AbsoluteCanvasSize.Y)
@@ -2536,12 +2551,16 @@ end
 
 openPausedRemotesBtn.MouseButton1Click:Connect(function()
 	pausedRemotesFrame.Visible = true
-	rebuildPausedRemotesPopup()
+	if rebuildPausedRemotesPopup then
+		rebuildPausedRemotesPopup()
+	end
 end)
 
 openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 	pausedAnimationsFrame.Visible = true
-	rebuildPausedAnimationsPopup()
+	if rebuildPausedAnimationsPopup then
+		rebuildPausedAnimationsPopup()
+	end
 end)
 
 exportRemotesBtn.MouseButton1Click:Connect(function()
@@ -2703,8 +2722,10 @@ end)
 
 -- ========== REMOTE DETECTION ==========
 local function setupRemoteSpy()
-	if not hookmetamethod then
-		warn("[RemoteSpy] hookmetamethod not available — remote tab will stay empty.")
+	if type(hookmetamethod) ~= "function"
+		or type(newcclosure) ~= "function"
+		or type(getnamecallmethod) ~= "function" then
+		warn("[RemoteSpy] Required hook functions missing (hookmetamethod/newcclosure/getnamecallmethod).")
 		return
 	end
 
