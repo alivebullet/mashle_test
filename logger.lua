@@ -639,17 +639,6 @@ visualizeRangeBtn.BorderSizePixel = 0
 visualizeRangeBtn.Parent = settingsPanel
 mkCorner(visualizeRangeBtn, 4)
 
-local visualSettingsLabel = Instance.new("TextLabel")
-visualSettingsLabel.Size = UDim2.new(1, -20, 0, 20)
-visualSettingsLabel.Position = UDim2.new(0, 10, 0, 154)
-visualSettingsLabel.BackgroundTransparency = 1
-visualSettingsLabel.Text = "Visualizer Style"
-visualSettingsLabel.TextColor3 = Theme.TextPrimary
-visualSettingsLabel.TextXAlignment = Enum.TextXAlignment.Left
-visualSettingsLabel.Font = Enum.Font.GothamBold
-visualSettingsLabel.TextSize = 11
-visualSettingsLabel.Parent = settingsPanel
-
 local function createSimpleSlider(parent, y, labelText, minVal, maxVal)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(0, 74, 0, 16)
@@ -699,6 +688,7 @@ local function createSimpleSlider(parent, y, labelText, minVal, maxVal)
 	return {
 		min = minVal,
 		max = maxVal,
+		label = label,
 		valueLabel = valueLabel,
 		track = track,
 		fill = fill,
@@ -706,13 +696,165 @@ local function createSimpleSlider(parent, y, labelText, minVal, maxVal)
 	}
 end
 
-local redSlider = createSimpleSlider(settingsPanel, 174, "Color R", 0, 255)
-redSlider.fill.BackgroundColor3 = Color3.fromRGB(160, 70, 70)
-local greenSlider = createSimpleSlider(settingsPanel, 200, "Color G", 0, 255)
-greenSlider.fill.BackgroundColor3 = Color3.fromRGB(70, 160, 70)
-local blueSlider = createSimpleSlider(settingsPanel, 226, "Color B", 0, 255)
-blueSlider.fill.BackgroundColor3 = Color3.fromRGB(70, 120, 190)
-local opacitySlider = createSimpleSlider(settingsPanel, 252, "Opacity", 0, 100)
+local visualSettingsLabel = Instance.new("TextLabel")
+visualSettingsLabel.Size = UDim2.new(1, -20, 0, 20)
+visualSettingsLabel.Position = UDim2.new(0, 10, 0, 154)
+visualSettingsLabel.BackgroundTransparency = 1
+visualSettingsLabel.Text = "Visualizer Style"
+visualSettingsLabel.TextColor3 = Theme.TextPrimary
+visualSettingsLabel.TextXAlignment = Enum.TextXAlignment.Left
+visualSettingsLabel.Font = Enum.Font.GothamBold
+visualSettingsLabel.TextSize = 11
+visualSettingsLabel.Parent = settingsPanel
+
+local colorPreviewLabel = Instance.new("TextLabel")
+colorPreviewLabel.Size = UDim2.new(0, 74, 0, 16)
+colorPreviewLabel.Position = UDim2.new(0, 10, 0, 180)
+colorPreviewLabel.BackgroundTransparency = 1
+colorPreviewLabel.Text = "Color"
+colorPreviewLabel.TextColor3 = Theme.TextSecondary
+colorPreviewLabel.TextXAlignment = Enum.TextXAlignment.Left
+colorPreviewLabel.Font = Enum.Font.Gotham
+colorPreviewLabel.TextSize = 10
+colorPreviewLabel.Parent = settingsPanel
+
+local colorHexLabel = Instance.new("TextLabel")
+colorHexLabel.Size = UDim2.new(0, 86, 0, 16)
+colorHexLabel.Position = UDim2.new(1, -96, 0, 180)
+colorHexLabel.BackgroundTransparency = 1
+colorHexLabel.Text = "#4B82FF"
+colorHexLabel.TextColor3 = Theme.TextMuted
+colorHexLabel.TextXAlignment = Enum.TextXAlignment.Right
+colorHexLabel.Font = Enum.Font.Gotham
+colorHexLabel.TextSize = 10
+colorHexLabel.Parent = settingsPanel
+
+local colorPickerToggleBtn = Instance.new("TextButton")
+colorPickerToggleBtn.Size = UDim2.new(0, 132, 0, 22)
+colorPickerToggleBtn.Position = UDim2.new(0, 84, 0, 177)
+colorPickerToggleBtn.BackgroundColor3 = Theme.ButtonDefault
+colorPickerToggleBtn.Text = "Pick Color"
+colorPickerToggleBtn.TextColor3 = Theme.TextPrimary
+colorPickerToggleBtn.Font = Enum.Font.Gotham
+colorPickerToggleBtn.TextSize = 10
+colorPickerToggleBtn.BorderSizePixel = 0
+colorPickerToggleBtn.Parent = settingsPanel
+mkCorner(colorPickerToggleBtn, 4)
+
+local colorPreviewSwatch = Instance.new("TextButton")
+colorPreviewSwatch.Size = UDim2.new(0, 20, 0, 20)
+colorPreviewSwatch.Position = UDim2.new(0, 220, 0, 178)
+colorPreviewSwatch.BackgroundColor3 = Color3.fromRGB(75, 130, 255)
+colorPreviewSwatch.Text = ""
+colorPreviewSwatch.AutoButtonColor = false
+colorPreviewSwatch.BorderSizePixel = 0
+colorPreviewSwatch.Parent = settingsPanel
+mkCorner(colorPreviewSwatch, 4)
+mkStroke(colorPreviewSwatch, Color3.fromRGB(85, 85, 105))
+
+local colorPickerFrame = Instance.new("Frame")
+colorPickerFrame.Size = UDim2.new(0, 220, 0, 126)
+colorPickerFrame.Position = UDim2.new(1, -230, 0, 112)
+colorPickerFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+colorPickerFrame.BorderSizePixel = 0
+colorPickerFrame.Visible = false
+colorPickerFrame.ZIndex = 8
+colorPickerFrame.Parent = settingsPanel
+mkCorner(colorPickerFrame, 6)
+mkStroke(colorPickerFrame, Color3.fromRGB(78, 78, 98))
+
+local colorPickerTitle = Instance.new("TextLabel")
+colorPickerTitle.Size = UDim2.new(1, -16, 0, 18)
+colorPickerTitle.Position = UDim2.new(0, 8, 0, 5)
+colorPickerTitle.BackgroundTransparency = 1
+colorPickerTitle.Text = "Color Picker"
+colorPickerTitle.TextColor3 = Theme.TextPrimary
+colorPickerTitle.TextXAlignment = Enum.TextXAlignment.Left
+colorPickerTitle.Font = Enum.Font.GothamBold
+colorPickerTitle.TextSize = 10
+colorPickerTitle.ZIndex = 9
+colorPickerTitle.Parent = colorPickerFrame
+
+local colorSV = Instance.new("Frame")
+colorSV.Size = UDim2.new(1, -16, 0, 70)
+colorSV.Position = UDim2.new(0, 8, 0, 24)
+colorSV.BorderSizePixel = 0
+colorSV.Active = true
+colorSV.ZIndex = 9
+colorSV.Parent = colorPickerFrame
+mkCorner(colorSV, 4)
+
+local colorSVWhite = Instance.new("Frame")
+colorSVWhite.Size = UDim2.new(1, 0, 1, 0)
+colorSVWhite.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+colorSVWhite.BorderSizePixel = 0
+colorSVWhite.ZIndex = 10
+colorSVWhite.Parent = colorSV
+local svWhiteGradient = Instance.new("UIGradient")
+svWhiteGradient.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.new(1, 1, 1))
+svWhiteGradient.Transparency = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 0),
+	NumberSequenceKeypoint.new(1, 1),
+})
+svWhiteGradient.Parent = colorSVWhite
+
+local colorSVBlack = Instance.new("Frame")
+colorSVBlack.Size = UDim2.new(1, 0, 1, 0)
+colorSVBlack.BackgroundColor3 = Color3.new(0, 0, 0)
+colorSVBlack.BorderSizePixel = 0
+colorSVBlack.ZIndex = 11
+colorSVBlack.Parent = colorSV
+local svBlackGradient = Instance.new("UIGradient")
+svBlackGradient.Color = ColorSequence.new(Color3.new(0, 0, 0), Color3.new(0, 0, 0))
+svBlackGradient.Transparency = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 1),
+	NumberSequenceKeypoint.new(1, 0),
+})
+svBlackGradient.Rotation = 90
+svBlackGradient.Parent = colorSVBlack
+
+local colorSVCursor = Instance.new("Frame")
+colorSVCursor.Size = UDim2.new(0, 10, 0, 10)
+colorSVCursor.Position = UDim2.new(1, -5, 0, -5)
+colorSVCursor.BackgroundColor3 = Color3.fromRGB(230, 230, 240)
+colorSVCursor.BorderSizePixel = 0
+colorSVCursor.ZIndex = 12
+colorSVCursor.Parent = colorSV
+mkCorner(colorSVCursor, 5)
+mkStroke(colorSVCursor, Color3.fromRGB(20, 20, 24))
+
+local colorHueTrack = Instance.new("Frame")
+colorHueTrack.Size = UDim2.new(1, -16, 0, 10)
+colorHueTrack.Position = UDim2.new(0, 8, 0, 102)
+colorHueTrack.BorderSizePixel = 0
+colorHueTrack.Active = true
+colorHueTrack.ZIndex = 9
+colorHueTrack.Parent = colorPickerFrame
+mkCorner(colorHueTrack, 5)
+
+local hueGradient = Instance.new("UIGradient")
+hueGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 0)),
+	ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 255, 0)),
+	ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
+	ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 255, 255)),
+	ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+	ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
+	ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 0)),
+})
+hueGradient.Parent = colorHueTrack
+
+local colorHueKnob = Instance.new("Frame")
+colorHueKnob.Size = UDim2.new(0, 12, 0, 12)
+colorHueKnob.Position = UDim2.new(1, -6, 0.5, -6)
+colorHueKnob.BackgroundColor3 = Color3.fromRGB(230, 230, 240)
+colorHueKnob.BorderSizePixel = 0
+colorHueKnob.ZIndex = 10
+colorHueKnob.Parent = colorHueTrack
+mkCorner(colorHueKnob, 6)
+mkStroke(colorHueKnob, Color3.fromRGB(20, 20, 24))
+
+local opacitySlider = createSimpleSlider(settingsPanel, 214, "Opacity", 0, 100)
 opacitySlider.fill.BackgroundColor3 = Color3.fromRGB(120, 120, 170)
 
 local settingsBackBtn = Instance.new("TextButton")
@@ -870,6 +1012,7 @@ local activeSliderUpdate  = nil
 local rangeVisualizerEnabled = false
 local rangeColorR, rangeColorG, rangeColorB = 75, 130, 255
 local rangeOpacityPercent = 22
+local rangeHue, rangeSat, rangeVal = Color3.fromRGB(rangeColorR, rangeColorG, rangeColorB):ToHSV()
 
 local function getOriginPosition()
 	local c = localPlayer.Character
@@ -954,11 +1097,33 @@ local function setDetectionRadius(value)
 	updateRangeSliderVisual()
 end
 
-local function setRangeColorFromSliders()
+local function setRangeColorFromState()
 	if rangeSphere then
 		rangeSphere.Color = Color3.fromRGB(rangeColorR, rangeColorG, rangeColorB)
 		rangeSphere.Transparency = 1 - (rangeOpacityPercent / 100)
 	end
+end
+
+local function updateColorPickerUI()
+	local color = Color3.fromRGB(rangeColorR, rangeColorG, rangeColorB)
+	colorPreviewSwatch.BackgroundColor3 = color
+	colorHexLabel.Text = ("#%02X%02X%02X"):format(rangeColorR, rangeColorG, rangeColorB)
+	colorSV.BackgroundColor3 = Color3.fromHSV(rangeHue, 1, 1)
+	colorSVCursor.Position = UDim2.new(rangeSat, -5, 1 - rangeVal, -5)
+	colorHueKnob.Position = UDim2.new(rangeHue, -6, 0.5, -6)
+end
+
+local function setRangeColorFromHSV(h, s, v)
+	rangeHue = math.clamp(h, 0, 1)
+	rangeSat = math.clamp(s, 0, 1)
+	rangeVal = math.clamp(v, 0, 1)
+	local color = Color3.fromHSV(rangeHue, rangeSat, rangeVal)
+	rangeColorR = math.floor(color.R * 255 + 0.5)
+	rangeColorG = math.floor(color.G * 255 + 0.5)
+	rangeColorB = math.floor(color.B * 255 + 0.5)
+	updateColorPickerUI()
+	setRangeColorFromState()
+	updateRangeVisualizer()
 end
 
 -- ========== STATUS ==========
@@ -979,6 +1144,8 @@ local function setTab(tab)
 	activeTab = tab
 	if tab == "animations" then
 		previousTab = "animations"
+		colorPickerFrame.Visible = false
+		colorPickerToggleBtn.Text = "Pick Color"
 		animContent.Visible    = true
 		remoteContent.Visible  = false
 		settingsContent.Visible = false
@@ -999,6 +1166,8 @@ local function setTab(tab)
 		pauseRemotesBtn.Visible = false
 	elseif tab == "remotes" then
 		previousTab = "remotes"
+		colorPickerFrame.Visible = false
+		colorPickerToggleBtn.Text = "Pick Color"
 		animContent.Visible    = false
 		remoteContent.Visible  = true
 		settingsContent.Visible = false
@@ -1085,61 +1254,77 @@ local function sliderValueFromInput(slider, inputX)
 	return slider.min + (slider.max - slider.min) * alpha
 end
 
-local function beginSliderDrag(updateFn, inputX)
+local function beginSliderDrag(updateFn, inputPos)
 	activeSliderUpdate = updateFn
-	updateFn(inputX)
+	updateFn(inputPos)
+end
+
+local function updateSVFromInput(inputPos)
+	local left = colorSV.AbsolutePosition.X
+	local top = colorSV.AbsolutePosition.Y
+	local width = math.max(1, colorSV.AbsoluteSize.X)
+	local height = math.max(1, colorSV.AbsoluteSize.Y)
+	local sat = math.clamp((inputPos.X - left) / width, 0, 1)
+	local val = 1 - math.clamp((inputPos.Y - top) / height, 0, 1)
+	setRangeColorFromHSV(rangeHue, sat, val)
+end
+
+local function updateHueFromInput(inputPos)
+	local left = colorHueTrack.AbsolutePosition.X
+	local width = math.max(1, colorHueTrack.AbsoluteSize.X)
+	local hue = math.clamp((inputPos.X - left) / width, 0, 1)
+	setRangeColorFromHSV(hue, rangeSat, rangeVal)
 end
 
 rangeSliderTrack.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-		beginSliderDrag(updateSliderFromInputX, i.Position.X)
-	end
-end)
-
-redSlider.track.InputBegan:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-		beginSliderDrag(function(x)
-			rangeColorR = setSimpleSliderValue(redSlider, sliderValueFromInput(redSlider, x))
-			setRangeColorFromSliders()
-			updateRangeVisualizer()
-		end, i.Position.X)
-	end
-end)
-
-greenSlider.track.InputBegan:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-		beginSliderDrag(function(x)
-			rangeColorG = setSimpleSliderValue(greenSlider, sliderValueFromInput(greenSlider, x))
-			setRangeColorFromSliders()
-			updateRangeVisualizer()
-		end, i.Position.X)
-	end
-end)
-
-blueSlider.track.InputBegan:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-		beginSliderDrag(function(x)
-			rangeColorB = setSimpleSliderValue(blueSlider, sliderValueFromInput(blueSlider, x))
-			setRangeColorFromSliders()
-			updateRangeVisualizer()
-		end, i.Position.X)
+		beginSliderDrag(function(pos)
+			updateSliderFromInputX(pos.X)
+		end, i.Position)
 	end
 end)
 
 opacitySlider.track.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-		beginSliderDrag(function(x)
-			rangeOpacityPercent = setSimpleSliderValue(opacitySlider, sliderValueFromInput(opacitySlider, x))
-			setRangeColorFromSliders()
+		beginSliderDrag(function(pos)
+			rangeOpacityPercent = setSimpleSliderValue(opacitySlider, sliderValueFromInput(opacitySlider, pos.X))
+			setRangeColorFromState()
 			updateRangeVisualizer()
-		end, i.Position.X)
+		end, i.Position)
 	end
 end)
+
+colorPickerToggleBtn.MouseButton1Click:Connect(function()
+	local open = not colorPickerFrame.Visible
+	colorPickerFrame.Visible = open
+	colorPickerToggleBtn.Text = open and "Close Picker" or "Pick Color"
+end)
+
+colorPreviewSwatch.MouseButton1Click:Connect(function()
+	local open = not colorPickerFrame.Visible
+	colorPickerFrame.Visible = open
+	colorPickerToggleBtn.Text = open and "Close Picker" or "Pick Color"
+end)
+
+local function bindPickerDrag(guiObj, fn)
+	guiObj.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			beginSliderDrag(fn, i.Position)
+		end
+	end)
+end
+
+bindPickerDrag(colorSV, updateSVFromInput)
+bindPickerDrag(colorSVWhite, updateSVFromInput)
+bindPickerDrag(colorSVBlack, updateSVFromInput)
+bindPickerDrag(colorSVCursor, updateSVFromInput)
+bindPickerDrag(colorHueTrack, updateHueFromInput)
+bindPickerDrag(colorHueKnob, updateHueFromInput)
 
 UserInputService.InputChanged:Connect(function(i)
 	if not activeSliderUpdate then return end
 	if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
-		activeSliderUpdate(i.Position.X)
+		activeSliderUpdate(i.Position)
 	end
 end)
 
@@ -1157,10 +1342,8 @@ visualizeRangeBtn.MouseButton1Click:Connect(function()
 end)
 
 setDetectionRadius(DEFAULT_DETECTION_RADIUS)
-setSimpleSliderValue(redSlider, rangeColorR)
-setSimpleSliderValue(greenSlider, rangeColorG)
-setSimpleSliderValue(blueSlider, rangeColorB)
 setSimpleSliderValue(opacitySlider, rangeOpacityPercent)
+updateColorPickerUI()
 
 -- ========== RICH TEXT HELPERS ==========
 local function bT(s)     return "<b>"..s.."</b>" end
