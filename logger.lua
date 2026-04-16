@@ -2697,7 +2697,11 @@ local tracked = {}
 local function trackHumanoid(humanoid)
 	if tracked[humanoid] then return end
 	tracked[humanoid] = true
-	CollectionService:AddTag(humanoid, HUMAN_TAG)
+	if CollectionService and type(CollectionService.AddTag) == "function" then
+		pcall(function()
+			CollectionService:AddTag(humanoid, HUMAN_TAG)
+		end)
+	end
 
 	local animator = humanoid:FindFirstChildOfClass("Animator")
 	if not animator then
@@ -2713,12 +2717,16 @@ local function trackHumanoid(humanoid)
 end
 
 -- Initial scan
-for _, d in ipairs(workspace:GetDescendants()) do
-	if d:IsA("Humanoid") then trackHumanoid(d) end
-end
+pcall(function()
+	for _, d in ipairs(workspace:GetDescendants()) do
+		if d:IsA("Humanoid") then trackHumanoid(d) end
+	end
+end)
 
-workspace.DescendantAdded:Connect(function(d)
-	if d:IsA("Humanoid") then trackHumanoid(d) end
+pcall(function()
+	workspace.DescendantAdded:Connect(function(d)
+		if d:IsA("Humanoid") then trackHumanoid(d) end
+	end)
 end)
 
 -- ========== REMOTE DETECTION ==========
@@ -2785,4 +2793,6 @@ local function setupRemoteSpy()
 	print("[RemoteSpy] __namecall hook active — remote logging enabled.")
 end
 
-pcall(setupRemoteSpy)
+if type(setupRemoteSpy) == "function" then
+	pcall(setupRemoteSpy)
+end
