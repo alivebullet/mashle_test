@@ -1210,6 +1210,7 @@ local function updateStatus()
 end
 
 -- ========== TAB SWITCHING ==========
+local applyRemoteFilter
 local function setTab(tab)
 	activeTab = tab
 	if tab == "animations" then
@@ -1822,11 +1823,11 @@ rdRunCodeBtn.MouseButton1Click:Connect(function()
 	local args = data.args or {}
 	local ok, runErr
 
-	if data.method == "FireServer" and remote and remote:IsA("RemoteEvent") then
+	if data.method == "FireServer" and typeof(remote) == "Instance" and remote:IsA("RemoteEvent") then
 		ok, runErr = pcall(function()
 			remote:FireServer(unpackArgs(args))
 		end)
-	elseif data.method == "InvokeServer" and remote and remote:IsA("RemoteFunction") then
+	elseif data.method == "InvokeServer" and typeof(remote) == "Instance" and remote:IsA("RemoteFunction") then
 		ok, runErr = pcall(function()
 			remote:InvokeServer(unpackArgs(args))
 		end)
@@ -2036,7 +2037,7 @@ end)
 -- ========== REMOTE LOG ENTRY ==========
 local remoteEntries = {}
 
-local function applyRemoteFilter()
+applyRemoteFilter = function()
 	local searchLower = remoteSearchText:lower()
 	for _, entryData in ipairs(remoteEntries) do
 		local btn = entryData.button
@@ -2511,11 +2512,11 @@ runCodeBtn.MouseButton1Click:Connect(function()
 	local args = data.args or {}
 	local ok, re
 
-	if data.method == "FireServer" and remote and remote:IsA("RemoteEvent") then
+	if data.method == "FireServer" and typeof(remote) == "Instance" and remote:IsA("RemoteEvent") then
 		ok, re = pcall(function()
 			remote:FireServer(unpackArgs(args))
 		end)
-	elseif data.method == "InvokeServer" and remote and remote:IsA("RemoteFunction") then
+	elseif data.method == "InvokeServer" and typeof(remote) == "Instance" and remote:IsA("RemoteFunction") then
 		ok, re = pcall(function()
 			remote:InvokeServer(unpackArgs(args))
 		end)
