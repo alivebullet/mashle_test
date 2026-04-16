@@ -1988,7 +1988,6 @@ copyIdBtn.MouseButton1Click:Connect(function()
 		print("[AnimDetect] Player:",  currentAnimDetail.character and currentAnimDetail.character.Name or "?")
 	end
 end)
-ignoreBtn.MouseButton1Click:Connect(function() end) -- removed, kept as stub to avoid nil ref
 refreshAnimBtn.MouseButton1Click:Connect(refreshAnimDetail)
 
 -- ========== ANIMATION LOG ENTRY ==========
