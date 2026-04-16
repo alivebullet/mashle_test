@@ -530,9 +530,21 @@ searchBox.ClearTextOnFocus = false
 searchBox.Parent = remoteSearchFrame
 mkCorner(searchBox, 4)
 
+local openPausedRemotesBtn = Instance.new("TextButton")
+openPausedRemotesBtn.Size = UDim2.new(1, -16, 0, 22)
+openPausedRemotesBtn.Position = UDim2.new(0, 8, 0, 30)
+openPausedRemotesBtn.BackgroundColor3 = Color3.fromRGB(42, 74, 120)
+openPausedRemotesBtn.Text = "Open Paused Remotes"
+openPausedRemotesBtn.TextColor3 = Theme.TextPrimary
+openPausedRemotesBtn.Font = Enum.Font.Gotham
+openPausedRemotesBtn.TextSize = 10
+openPausedRemotesBtn.BorderSizePixel = 0
+openPausedRemotesBtn.Parent = remoteContent
+mkCorner(openPausedRemotesBtn, 4)
+
 local remoteScroll = Instance.new("ScrollingFrame")
-remoteScroll.Size               = UDim2.new(1, -16, 1, -78)
-remoteScroll.Position           = UDim2.new(0, 8, 0, 32)
+remoteScroll.Size               = UDim2.new(1, -16, 1, -104)
+remoteScroll.Position           = UDim2.new(0, 8, 0, 58)
 remoteScroll.BackgroundColor3   = Color3.fromRGB(15, 15, 20)
 remoteScroll.BorderSizePixel    = 0
 remoteScroll.ScrollBarThickness = 6
@@ -640,6 +652,7 @@ local remoteLogPaused     = false
 local remoteFilterLocal   = false  -- show only local player's remotes
 local remoteSearchText    = ""
 local pausedIndividualRemotes = {} -- Tracks specifically paused remotes
+local pausedRemoteArchive = {} -- Keeps a restorable snapshot of paused remotes
 
 -- ========== STATUS ==========
 local function updateStatus()
@@ -947,9 +960,11 @@ rdPauseBtn.MouseButton1Click:Connect(function()
 	pausedIndividualRemotes[rName] = not pausedIndividualRemotes[rName]
 	
 	if pausedIndividualRemotes[rName] then
+		pausedRemoteArchive[rName] = selectedRemoteData
 		rdPauseBtn.Text = "▶ Resume"
 		rdPauseBtn.BackgroundColor3 = Color3.fromRGB(120, 100, 40)
 	else
+		pausedRemoteArchive[rName] = nil
 		rdPauseBtn.Text = "⏸ Pause"
 		rdPauseBtn.BackgroundColor3 = Color3.fromRGB(130, 48, 48)
 	end
@@ -1413,13 +1428,51 @@ local function addRemoteEntry(data)
 		showRemoteDetail(data)
 	end)
 
-	table.insert(remoteEntries, {button = entry, remoteName = data.remoteName, player = data.player})
+	table.insert(remoteEntries, {button = entry, remoteName = data.remoteName, player = data.player, data = data})
 	applyRemoteFilter()
 
 	task.defer(function()
 		remoteScroll.CanvasPosition = Vector2.new(0, remoteScroll.AbsoluteCanvasSize.Y)
 	end)
 end
+
+openPausedRemotesBtn.MouseButton1Click:Connect(function()
+	for _, c in ipairs(remoteScroll:GetChildren()) do
+		if c:IsA("TextButton") then c:Destroy() end
+	end
+	remoteEntries = {}
+	remoteCount = 0
+	selectedRemoteData = nil
+	selectedRemoteEntry = nil
+	remDetailFrame.Visible = false
+
+	local names = {}
+	for rName, data in pairs(pausedRemoteArchive) do
+		if pausedIndividualRemotes[rName] and data then
+			table.insert(names, rName)
+		end
+	end
+	table.sort(names)
+
+	local wasPaused = remoteLogPaused
+	remoteLogPaused = false
+	for _, rName in ipairs(names) do
+		local data = pausedRemoteArchive[rName]
+		if data then
+			addRemoteEntry(data)
+		end
+	end
+	remoteLogPaused = wasPaused
+
+	local restored = #names
+	openPausedRemotesBtn.Text = ("Opened %d paused"):format(restored)
+	task.delay(1.3, function()
+		if openPausedRemotesBtn and openPausedRemotesBtn.Parent then
+			openPausedRemotesBtn.Text = "Open Paused Remotes"
+		end
+	end)
+	updateStatus()
+end)
 
 exportRemotesBtn.MouseButton1Click:Connect(function()
 	local lines = {}
