@@ -1076,6 +1076,12 @@ local pausedAnimationArchive = {}
 local pausedIndividualAnimations = {}
 local pausedAnimationIndividualArchive = {}
 local animEntries = {}
+local pausedRemotesScroll
+local pausedAnimationsScroll
+local addRemoteEntry
+local refreshPauseAnimDetailButton
+local rebuildPausedRemotesPopup
+local rebuildPausedAnimationsPopup
 local detectionRadius     = DEFAULT_DETECTION_RADIUS
 local previousTab         = "animations"
 local activeSliderUpdate  = nil
@@ -1664,6 +1670,10 @@ rdPauseBtn.MouseButton1Click:Connect(function()
 		rdPauseBtn.Text = "⏸ Pause"
 		rdPauseBtn.BackgroundColor3 = Color3.fromRGB(130, 48, 48)
 	end
+
+	if pausedRemotesFrame.Visible then
+		rebuildPausedRemotesPopup()
+	end
 end)
 
 local rdResizeGrip = Instance.new("TextButton")
@@ -1680,7 +1690,7 @@ mkCorner(rdResizeGrip, 3)
 rdResizeGrip.MouseEnter:Connect(function() rdResizeGrip.BackgroundTransparency = 0   end)
 rdResizeGrip.MouseLeave:Connect(function() rdResizeGrip.BackgroundTransparency = 0.4 end)
 
-local function refreshPauseAnimDetailButton()
+refreshPauseAnimDetailButton = function()
 	if not currentAnimDetail then
 		pauseAnimDetailBtn.Text = "⏸ Pause Animation"
 		pauseAnimDetailBtn.BackgroundColor3 = Color3.fromRGB(130, 48, 48)
@@ -1704,7 +1714,7 @@ local function clearPausedPopupList(scroll)
 	end
 end
 
-local function rebuildPausedRemotesPopup()
+rebuildPausedRemotesPopup = function()
 	clearPausedPopupList(pausedRemotesScroll)
 
 	local names = {}
@@ -1787,7 +1797,7 @@ local function rebuildPausedRemotesPopup()
 	end
 end
 
-local function rebuildPausedAnimationsPopup()
+rebuildPausedAnimationsPopup = function()
 	clearPausedPopupList(pausedAnimationsScroll)
 
 	local keys = {}
@@ -1916,7 +1926,7 @@ pausedRemotesCloseBtn.BorderSizePixel = 0
 pausedRemotesCloseBtn.Parent = pausedRemotesTitleBar
 mkCorner(pausedRemotesCloseBtn, 4)
 
-local pausedRemotesScroll = Instance.new("ScrollingFrame")
+pausedRemotesScroll = Instance.new("ScrollingFrame")
 pausedRemotesScroll.Size = UDim2.new(1, -16, 1, -44)
 pausedRemotesScroll.Position = UDim2.new(0, 8, 0, 36)
 pausedRemotesScroll.BackgroundColor3 = Color3.fromRGB(12, 13, 18)
@@ -1980,7 +1990,7 @@ pausedAnimationsCloseBtn.BorderSizePixel = 0
 pausedAnimationsCloseBtn.Parent = pausedAnimationsTitleBar
 mkCorner(pausedAnimationsCloseBtn, 4)
 
-local pausedAnimationsScroll = Instance.new("ScrollingFrame")
+pausedAnimationsScroll = Instance.new("ScrollingFrame")
 pausedAnimationsScroll.Size = UDim2.new(1, -16, 1, -44)
 pausedAnimationsScroll.Position = UDim2.new(0, 8, 0, 36)
 pausedAnimationsScroll.BackgroundColor3 = Color3.fromRGB(12, 13, 18)
@@ -2046,6 +2056,8 @@ local dragCallbacks = {
 	bindDrag(titleBar,         mainFrame),
 	bindDrag(detailTitleBar,   detailFrame),
 	bindDrag(rdTitleBar,       remDetailFrame),
+	bindDrag(pausedRemotesTitleBar, pausedRemotesFrame),
+	bindDrag(pausedAnimationsTitleBar, pausedAnimationsFrame),
 }
 local resizeCallbacks = {
 	bindResize(resizeGrip,           mainFrame),
@@ -2068,9 +2080,15 @@ local function showRemoteDetail(data)
 	rdTitleLabel.Text = "📡  " .. (data.remoteName or "Remote")
 
 	local remoteType = safeGet(function()
+		if typeof(data.remote) ~= "Instance" then
+			return typeof(data.remote)
+		end
 		return data.remote:IsA("RemoteEvent") and "RemoteEvent" or "RemoteFunction"
 	end)
 	local parentName = safeGet(function()
+		if typeof(data.remote) ~= "Instance" then
+			return "nil"
+		end
 		return data.remote.Parent and data.remote.Parent.Name or "nil"
 	end)
 	local fullPath = getRemotePath(data.remote)
@@ -2277,6 +2295,7 @@ local function showAnimDetailView(data)
 	currentAnimDetail    = data
 	detailFrame.Visible  = true
 	refreshAnimDetail()
+	refreshPauseAnimDetailButton()
 end
 
 copyIdBtn.MouseButton1Click:Connect(function()
@@ -2299,8 +2318,41 @@ ignoreBtn.MouseButton1Click:Connect(function()
 end)
 refreshAnimBtn.MouseButton1Click:Connect(refreshAnimDetail)
 
+pauseAnimDetailBtn.MouseButton1Click:Connect(function()
+	if not currentAnimDetail then return end
+	local key = getAnimationPauseKey(currentAnimDetail)
+	if pausedIndividualAnimations[key] then
+		pausedIndividualAnimations[key] = nil
+		pausedAnimationIndividualArchive[key] = nil
+	else
+		pausedIndividualAnimations[key] = true
+		pausedAnimationIndividualArchive[key] = currentAnimDetail
+	end
+	refreshPauseAnimDetailButton()
+	if pausedAnimationsFrame.Visible then
+		rebuildPausedAnimationsPopup()
+	end
+end)
+
+pausedRemotesCloseBtn.MouseButton1Click:Connect(function()
+	pausedRemotesFrame.Visible = false
+end)
+
+pausedAnimationsCloseBtn.MouseButton1Click:Connect(function()
+	pausedAnimationsFrame.Visible = false
+end)
+
 -- ========== ANIMATION LOG ENTRY ==========
 local function addLogEntry(data)
+	local animPauseKey = getAnimationPauseKey(data)
+	if pausedIndividualAnimations[animPauseKey] then
+		pausedAnimationIndividualArchive[animPauseKey] = data
+		if pausedAnimationsFrame.Visible then
+			rebuildPausedAnimationsPopup()
+		end
+		return
+	end
+
 	if animLogPaused then
 		filteredCount += 1
 		pausedAnimationArchive[#pausedAnimationArchive + 1] = data
@@ -2395,7 +2447,7 @@ searchBox:GetPropertyChangedSignal("Text"):Connect(function()
 	applyRemoteFilter()
 end)
 
-local function addRemoteEntry(data)
+addRemoteEntry = function(data)
 	if remoteLogPaused then return end
 	if remoteFilterLocal and data.player ~= localPlayer then return end
 
@@ -2483,71 +2535,13 @@ local function addRemoteEntry(data)
 end
 
 openPausedRemotesBtn.MouseButton1Click:Connect(function()
-	for _, c in ipairs(remoteScroll:GetChildren()) do
-		if c:IsA("TextButton") then c:Destroy() end
-	end
-	remoteEntries = {}
-	remoteCount = 0
-	selectedRemoteData = nil
-	selectedRemoteEntry = nil
-	remDetailFrame.Visible = false
-
-	local names = {}
-	for rName, data in pairs(pausedRemoteArchive) do
-		if pausedIndividualRemotes[rName] and data then
-			table.insert(names, rName)
-		end
-	end
-	table.sort(names)
-
-	local wasPaused = remoteLogPaused
-	remoteLogPaused = false
-	for _, rName in ipairs(names) do
-		local data = pausedRemoteArchive[rName]
-		if data then
-			addRemoteEntry(data)
-		end
-	end
-	remoteLogPaused = wasPaused
-
-	local restored = #names
-	openPausedRemotesBtn.Text = ("Opened %d paused"):format(restored)
-	task.delay(1.3, function()
-		if openPausedRemotesBtn and openPausedRemotesBtn.Parent then
-			openPausedRemotesBtn.Text = "Open Paused Remotes"
-		end
-	end)
-	updateStatus()
+	pausedRemotesFrame.Visible = true
+	rebuildPausedRemotesPopup()
 end)
 
 openPausedAnimationsBtn.MouseButton1Click:Connect(function()
-	for _, c in ipairs(scrollFrame:GetChildren()) do
-		if c:IsA("TextButton") then c:Destroy() end
-	end
-	animEntries = {}
-	detectionCount = 0
-	filteredCount = 0
-	currentAnimDetail = nil
-	detailFrame.Visible = false
-
-	local restored = 0
-	local wasPaused = animLogPaused
-	animLogPaused = false
-	for _, data in ipairs(pausedAnimationArchive) do
-		if data then
-			addLogEntry(data)
-			restored += 1
-		end
-	end
-	animLogPaused = wasPaused
-
-	openPausedAnimationsBtn.Text = ("Opened %d paused"):format(restored)
-	task.delay(1.3, function()
-		if openPausedAnimationsBtn and openPausedAnimationsBtn.Parent then
-			openPausedAnimationsBtn.Text = "Open Paused Animations"
-		end
-	end)
-	updateStatus()
+	pausedAnimationsFrame.Visible = true
+	rebuildPausedAnimationsPopup()
 end)
 
 exportRemotesBtn.MouseButton1Click:Connect(function()
