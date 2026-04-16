@@ -2284,8 +2284,15 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 				gui.Enabled = false
 			end)
 
+			win.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					gui.DisplayOrder = 25
+				end
+			end)
+
 			tb.InputBegan:Connect(function(i)
 				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					gui.DisplayOrder = 25
 					local mp = UIS:GetMouseLocation()
 					local wp = win.AbsolutePosition
 					dragOffsetX = mp.X - wp.X
@@ -2296,6 +2303,7 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 
 			rg.InputBegan:Connect(function(i)
 				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					gui.DisplayOrder = 25
 					resizeStartMouse = UIS:GetMouseLocation()
 					resizeStartSize = win.AbsoluteSize
 					resizing = true
@@ -2306,6 +2314,7 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 				if i.UserInputType == Enum.UserInputType.MouseButton1 then
 					dragging = false
 					resizing = false
+					gui.DisplayOrder = 20
 				end
 			end)
 
@@ -2446,7 +2455,7 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 			local win = Instance.new("Frame", gui)
 			win.Name = "Win"
 			win.Size = UDim2.new(0, 480, 0, 360)
-			win.Position = UDim2.new(0.5, -240, 0.5, -180)
+			win.Position = UDim2.new(0.5, -200, 0.5, -140)
 			win.BackgroundColor3 = T.Background
 			win.BorderSizePixel = 0
 			mkC(win, 8); mkS(win, T.StrokeColor)
@@ -2539,8 +2548,15 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 				gui.Enabled = false
 			end)
 
+			win.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					gui.DisplayOrder = 25
+				end
+			end)
+
 			tb.InputBegan:Connect(function(i)
 				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					gui.DisplayOrder = 25
 					local mp = UIS:GetMouseLocation()
 					local wp = win.AbsolutePosition
 					dragOffsetX = mp.X - wp.X
@@ -2551,6 +2567,7 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 
 			rg.InputBegan:Connect(function(i)
 				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					gui.DisplayOrder = 25
 					resizeStartMouse = UIS:GetMouseLocation()
 					resizeStartSize = win.AbsoluteSize
 					resizing = true
@@ -2561,6 +2578,7 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 				if i.UserInputType == Enum.UserInputType.MouseButton1 then
 					dragging = false
 					resizing = false
+					gui.DisplayOrder = 20
 				end
 			end)
 
