@@ -2146,9 +2146,8 @@ local function addRemoteEntry(data)
 		remoteScroll.CanvasPosition = Vector2.new(0, remoteScroll.AbsoluteCanvasSize.Y)
 	end)
 end
-local _pausedRemotesGui = nil
 openPausedRemotesBtn.MouseButton1Click:Connect(function()
-	if not _pausedRemotesGui then
+	if not playerGui:FindFirstChild("PausedRemotesPopup") then
 		pcall(function()
 			local gui = Instance.new("ScreenGui")
 			gui.Name = "PausedRemotesPopup"
@@ -2217,12 +2216,12 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 			layout.SortOrder = Enum.SortOrder.LayoutOrder
 			layout.Padding = UDim.new(0, 3)
 
-			_pausedRemotesGui = gui
 		end)
 	end
 
-	if not _pausedRemotesGui then return end
-	local win = _pausedRemotesGui:FindFirstChild("Win")
+	local popupGui = playerGui:FindFirstChild("PausedRemotesPopup")
+	if not popupGui then return end
+	local win = popupGui:FindFirstChild("Win")
 	if not win then return end
 	local scroll = win:FindFirstChild("Scroll")
 	if not scroll then return end
@@ -2299,12 +2298,11 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 
 	local titleLbl = win.TitleBar:FindFirstChild("TitleLbl")
 	if titleLbl then titleLbl.Text = ("Paused Remotes (%d)"):format(#names) end
-	_pausedRemotesGui.Enabled = true
+	popupGui.Enabled = true
 end)
 
-local _pausedAnimationsGui = nil
 openPausedAnimationsBtn.MouseButton1Click:Connect(function()
-	if not _pausedAnimationsGui then
+	if not playerGui:FindFirstChild("PausedAnimationsPopup") then
 		pcall(function()
 			local gui = Instance.new("ScreenGui")
 			gui.Name = "PausedAnimationsPopup"
@@ -2373,12 +2371,12 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 			layout.SortOrder = Enum.SortOrder.LayoutOrder
 			layout.Padding = UDim.new(0, 3)
 
-			_pausedAnimationsGui = gui
 		end)
 	end
 
-	if not _pausedAnimationsGui then return end
-	local win = _pausedAnimationsGui:FindFirstChild("Win")
+	local popupGui = playerGui:FindFirstChild("PausedAnimationsPopup")
+	if not popupGui then return end
+	local win = popupGui:FindFirstChild("Win")
 	if not win then return end
 	local scroll = win:FindFirstChild("Scroll")
 	if not scroll then return end
@@ -2429,7 +2427,7 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 
 	local titleLbl = win.TitleBar:FindFirstChild("TitleLbl")
 	if titleLbl then titleLbl.Text = ("Paused Animations (%d)"):format(#pausedAnimationArchive) end
-	_pausedAnimationsGui.Enabled = true
+	popupGui.Enabled = true
 end)
 
 exportRemotesBtn.MouseButton1Click:Connect(function()
