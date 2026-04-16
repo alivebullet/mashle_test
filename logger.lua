@@ -1,4 +1,3 @@
-print("[DIAG] Script compilation OK, execution starting...")
 -- AnimationDetectorUI.lua
 -- LocalScript — place in StarterPlayerScripts
 -- Enhanced version with pause, search, export, player filtering, theme constants, and better cleanup.
@@ -2731,45 +2730,57 @@ local function setupRemoteSpy()
 		return
 	end
 
-	local oldNamecall
-	oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-		local method = getnamecallmethod()
+	local originalNamecall
+	local hookOk, hookResult = pcall(function()
+		return hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+			if type(originalNamecall) ~= "function" then
+				return nil
+			end
 
-		if method ~= "FireServer" and method ~= "InvokeServer" then
-			return oldNamecall(self, ...)
-		end
+			local method = getnamecallmethod()
 
-		local remote = self
-		local remoteName = tostring(self)
-		if typeof(self) == "Instance" then
-			remoteName = self.Name
-		end
+			if method ~= "FireServer" and method ~= "InvokeServer" then
+				return originalNamecall(self, ...)
+			end
 
-		if not pausedIndividualRemotes[remoteName] then
-			local args = {...}
+			local remote = self
+			local remoteName = tostring(self)
+			if typeof(self) == "Instance" then
+				remoteName = self.Name
+			end
 
-			task.defer(function()
-				local okSer, argsStr = pcall(serializeArgs, args)
-				if not okSer then argsStr = "..." end
+			if not pausedIndividualRemotes[remoteName] then
+				local args = {...}
 
-				local preview = argsStr ~= "" and ("(" .. argsStr .. ")") or "()"
-				if #preview > 64 then preview = preview:sub(1, 61) .. "..." end
+				task.defer(function()
+					local okSer, argsStr = pcall(serializeArgs, args)
+					if not okSer then argsStr = "..." end
 
-				pcall(addRemoteEntry, {
-					remote = remote,
-					remoteName = remoteName,
-					method = method,
-					args = args,
-					argsStr = argsStr,
-					argsPreview = preview,
-					timestamp = os.date("%H:%M:%S"),
-					player = localPlayer,
-				})
-			end)
-		end
+					local preview = argsStr ~= "" and ("(" .. argsStr .. ")") or "()"
+					if #preview > 64 then preview = preview:sub(1, 61) .. "..." end
 
-		return oldNamecall(self, ...)
-	end))
+					pcall(addRemoteEntry, {
+						remote = remote,
+						remoteName = remoteName,
+						method = method,
+						args = args,
+						argsStr = argsStr,
+						argsPreview = preview,
+						timestamp = os.date("%H:%M:%S"),
+						player = localPlayer,
+					})
+				end)
+			end
+
+			return originalNamecall(self, ...)
+		end))
+	end)
+
+	if not hookOk or type(hookResult) ~= "function" then
+		warn("[RemoteSpy] Failed to install __namecall hook safely.")
+		return
+	end
+	originalNamecall = hookResult
 
 	print("[RemoteSpy] __namecall hook active — remote logging enabled.")
 end
