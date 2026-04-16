@@ -274,13 +274,14 @@ titleLabel.Parent             = titleBar
 
 local settingsBtn = Instance.new("TextButton")
 settingsBtn.Size             = UDim2.new(0, 24, 0, 22)
-settingsBtn.Position         = UDim2.new(0, 252, 0, 5)
+settingsBtn.Position         = UDim2.new(0, 206, 0, 5)
 settingsBtn.BackgroundColor3 = Theme.ButtonDefault
 settingsBtn.Text             = "⚙"
 settingsBtn.TextColor3       = Theme.TextPrimary
 settingsBtn.Font             = Enum.Font.GothamBold
 settingsBtn.TextSize         = 12
 settingsBtn.BorderSizePixel  = 0
+settingsBtn.ZIndex           = 3
 settingsBtn.Parent           = titleBar
 mkCorner(settingsBtn, 4)
 
