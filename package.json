@@ -1,0 +1,10 @@
+{
+  "name": "lua-loadstring-bundler",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Bundle split Lua modules into one loadstring-ready file",
+  "scripts": {
+    "build": "node scripts/bundle-lua.js --entry logger.lua --out dist/logger.bundle.lua --root .",
+    "watch:ps": "powershell -ExecutionPolicy Bypass -File ./scripts/watch-bundle.ps1 -Root . -Entry logger.lua -Out dist/logger.bundle.lua"
+  }
+}
