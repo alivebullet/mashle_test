@@ -1,3 +1,4 @@
+print("[DIAG] Script compilation OK, execution starting...")
 -- AnimationDetectorUI.lua
 -- LocalScript — place in StarterPlayerScripts
 -- Enhanced version with pause, search, export, player filtering, theme constants, and better cleanup.
@@ -2439,17 +2440,18 @@ applyRemoteFilter = function()
 	local searchLower = remoteSearchText:lower()
 	for _, entryData in ipairs(remoteEntries) do
 		local btn = entryData.button
-		if not btn then continue end
-		local visible = true
-		if remoteFilterLocal and entryData.player ~= localPlayer then
-			visible = false
-		end
-		if visible and searchLower ~= "" then
-			if not string.find(entryData.remoteName:lower(), searchLower, 1, true) then
+		if btn then
+			local visible = true
+			if remoteFilterLocal and entryData.player ~= localPlayer then
 				visible = false
 			end
+			if visible and searchLower ~= "" then
+				if not string.find(entryData.remoteName:lower(), searchLower, 1, true) then
+					visible = false
+				end
+			end
+			btn.Visible = visible
 		end
-		btn.Visible = visible
 	end
 end
 
