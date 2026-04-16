@@ -9,7 +9,7 @@ local RunService       = game:GetService("RunService")
 local DEFAULT_DETECTION_RADIUS = 100
 local MAX_DETECTION_RADIUS     = 200
 local MAX_LOG_ENTRIES       = 100
-local MIN_WIDTH, MIN_HEIGHT = 280, 200
+local MIN_WIDTH, MIN_HEIGHT = 520, 360
 local MAX_WIDTH, MAX_HEIGHT = 1200, 900
 
 local localPlayer = Players.LocalPlayer
@@ -639,6 +639,82 @@ visualizeRangeBtn.BorderSizePixel = 0
 visualizeRangeBtn.Parent = settingsPanel
 mkCorner(visualizeRangeBtn, 4)
 
+local visualSettingsLabel = Instance.new("TextLabel")
+visualSettingsLabel.Size = UDim2.new(1, -20, 0, 20)
+visualSettingsLabel.Position = UDim2.new(0, 10, 0, 154)
+visualSettingsLabel.BackgroundTransparency = 1
+visualSettingsLabel.Text = "Visualizer Style"
+visualSettingsLabel.TextColor3 = Theme.TextPrimary
+visualSettingsLabel.TextXAlignment = Enum.TextXAlignment.Left
+visualSettingsLabel.Font = Enum.Font.GothamBold
+visualSettingsLabel.TextSize = 11
+visualSettingsLabel.Parent = settingsPanel
+
+local function createSimpleSlider(parent, y, labelText, minVal, maxVal)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0, 74, 0, 16)
+	label.Position = UDim2.new(0, 10, 0, y)
+	label.BackgroundTransparency = 1
+	label.Text = labelText
+	label.TextColor3 = Theme.TextSecondary
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 10
+	label.Parent = parent
+
+	local valueLabel = Instance.new("TextLabel")
+	valueLabel.Size = UDim2.new(0, 40, 0, 16)
+	valueLabel.Position = UDim2.new(1, -50, 0, y)
+	valueLabel.BackgroundTransparency = 1
+	valueLabel.Text = tostring(minVal)
+	valueLabel.TextColor3 = Theme.TextMuted
+	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+	valueLabel.Font = Enum.Font.Gotham
+	valueLabel.TextSize = 10
+	valueLabel.Parent = parent
+
+	local track = Instance.new("Frame")
+	track.Size = UDim2.new(1, -130, 0, 10)
+	track.Position = UDim2.new(0, 84, 0, y + 3)
+	track.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+	track.BorderSizePixel = 0
+	track.Parent = parent
+	mkCorner(track, 5)
+
+	local fill = Instance.new("Frame")
+	fill.Size = UDim2.new(0, 0, 1, 0)
+	fill.BackgroundColor3 = Color3.fromRGB(75, 120, 185)
+	fill.BorderSizePixel = 0
+	fill.Parent = track
+	mkCorner(fill, 5)
+
+	local knob = Instance.new("Frame")
+	knob.Size = UDim2.new(0, 12, 0, 12)
+	knob.Position = UDim2.new(0, -6, 0.5, -6)
+	knob.BackgroundColor3 = Color3.fromRGB(210, 220, 240)
+	knob.BorderSizePixel = 0
+	knob.Parent = track
+	mkCorner(knob, 6)
+
+	return {
+		min = minVal,
+		max = maxVal,
+		valueLabel = valueLabel,
+		track = track,
+		fill = fill,
+		knob = knob,
+	}
+end
+
+local redSlider = createSimpleSlider(settingsPanel, 174, "Color R", 0, 255)
+redSlider.fill.BackgroundColor3 = Color3.fromRGB(160, 70, 70)
+local greenSlider = createSimpleSlider(settingsPanel, 200, "Color G", 0, 255)
+greenSlider.fill.BackgroundColor3 = Color3.fromRGB(70, 160, 70)
+local blueSlider = createSimpleSlider(settingsPanel, 226, "Color B", 0, 255)
+blueSlider.fill.BackgroundColor3 = Color3.fromRGB(70, 120, 190)
+local opacitySlider = createSimpleSlider(settingsPanel, 252, "Opacity", 0, 100)
+opacitySlider.fill.BackgroundColor3 = Color3.fromRGB(120, 120, 170)
+
 local settingsBackBtn = Instance.new("TextButton")
 settingsBackBtn.Size = UDim2.new(0, 90, 0, 24)
 settingsBackBtn.Position = UDim2.new(1, -100, 0, 10)
@@ -790,8 +866,10 @@ local pausedIndividualRemotes = {} -- Tracks specifically paused remotes
 local pausedRemoteArchive = {} -- Keeps a restorable snapshot of paused remotes
 local detectionRadius     = DEFAULT_DETECTION_RADIUS
 local previousTab         = "animations"
-local sliderDragging      = false
+local activeSliderUpdate  = nil
 local rangeVisualizerEnabled = false
+local rangeColorR, rangeColorG, rangeColorB = 75, 130, 255
+local rangeOpacityPercent = 22
 
 local function getOriginPosition()
 	local c = localPlayer.Character
@@ -822,17 +900,18 @@ local function updateRangeVisualizer()
 		rangeSphere.CanQuery = false
 		rangeSphere.CastShadow = false
 		rangeSphere.Material = Enum.Material.ForceField
-		rangeSphere.Color = Color3.fromRGB(75, 130, 255)
-		rangeSphere.Transparency = 0.78
+		rangeSphere.Color = Color3.fromRGB(rangeColorR, rangeColorG, rangeColorB)
+		rangeSphere.Transparency = 1 - (rangeOpacityPercent / 100)
 		rangeSphere.Parent = workspace
 	end
 
 	local diameter = math.max(0.1, detectionRadius * 2)
 	rangeSphere.Size = Vector3.new(diameter, diameter, diameter)
+	rangeSphere.Color = Color3.fromRGB(rangeColorR, rangeColorG, rangeColorB)
 	local origin = getOriginPosition()
 	if origin then
 		rangeSphere.Position = origin
-		rangeSphere.Transparency = 0.78
+		rangeSphere.Transparency = 1 - (rangeOpacityPercent / 100)
 	else
 		rangeSphere.Transparency = 1
 	end
@@ -844,12 +923,22 @@ local function updateRangeVisualizer()
 			local nowOrigin = getOriginPosition()
 			if nowOrigin then
 				rangeSphere.Position = nowOrigin
-				rangeSphere.Transparency = 0.78
+				rangeSphere.Transparency = 1 - (rangeOpacityPercent / 100)
+				rangeSphere.Color = Color3.fromRGB(rangeColorR, rangeColorG, rangeColorB)
 			else
 				rangeSphere.Transparency = 1
 			end
 		end)
 	end
+end
+
+local function setSimpleSliderValue(slider, value)
+	local clamped = math.clamp(math.floor(value + 0.5), slider.min, slider.max)
+	local alpha = (clamped - slider.min) / math.max(1, (slider.max - slider.min))
+	slider.fill.Size = UDim2.new(alpha, 0, 1, 0)
+	slider.knob.Position = UDim2.new(alpha, -6, 0.5, -6)
+	slider.valueLabel.Text = tostring(clamped)
+	return clamped
 end
 
 local function updateRangeSliderVisual()
@@ -863,6 +952,13 @@ end
 local function setDetectionRadius(value)
 	detectionRadius = math.clamp(math.floor(value + 0.5), 0, MAX_DETECTION_RADIUS)
 	updateRangeSliderVisual()
+end
+
+local function setRangeColorFromSliders()
+	if rangeSphere then
+		rangeSphere.Color = Color3.fromRGB(rangeColorR, rangeColorG, rangeColorB)
+		rangeSphere.Transparency = 1 - (rangeOpacityPercent / 100)
+	end
 end
 
 -- ========== STATUS ==========
@@ -982,23 +1078,74 @@ local function updateSliderFromInputX(inputX)
 	setDetectionRadius(alpha * MAX_DETECTION_RADIUS)
 end
 
+local function sliderValueFromInput(slider, inputX)
+	local left = slider.track.AbsolutePosition.X
+	local width = math.max(1, slider.track.AbsoluteSize.X)
+	local alpha = math.clamp((inputX - left) / width, 0, 1)
+	return slider.min + (slider.max - slider.min) * alpha
+end
+
+local function beginSliderDrag(updateFn, inputX)
+	activeSliderUpdate = updateFn
+	updateFn(inputX)
+end
+
 rangeSliderTrack.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-		sliderDragging = true
-		updateSliderFromInputX(i.Position.X)
+		beginSliderDrag(updateSliderFromInputX, i.Position.X)
+	end
+end)
+
+redSlider.track.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		beginSliderDrag(function(x)
+			rangeColorR = setSimpleSliderValue(redSlider, sliderValueFromInput(redSlider, x))
+			setRangeColorFromSliders()
+			updateRangeVisualizer()
+		end, i.Position.X)
+	end
+end)
+
+greenSlider.track.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		beginSliderDrag(function(x)
+			rangeColorG = setSimpleSliderValue(greenSlider, sliderValueFromInput(greenSlider, x))
+			setRangeColorFromSliders()
+			updateRangeVisualizer()
+		end, i.Position.X)
+	end
+end)
+
+blueSlider.track.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		beginSliderDrag(function(x)
+			rangeColorB = setSimpleSliderValue(blueSlider, sliderValueFromInput(blueSlider, x))
+			setRangeColorFromSliders()
+			updateRangeVisualizer()
+		end, i.Position.X)
+	end
+end)
+
+opacitySlider.track.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		beginSliderDrag(function(x)
+			rangeOpacityPercent = setSimpleSliderValue(opacitySlider, sliderValueFromInput(opacitySlider, x))
+			setRangeColorFromSliders()
+			updateRangeVisualizer()
+		end, i.Position.X)
 	end
 end)
 
 UserInputService.InputChanged:Connect(function(i)
-	if not sliderDragging then return end
+	if not activeSliderUpdate then return end
 	if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
-		updateSliderFromInputX(i.Position.X)
+		activeSliderUpdate(i.Position.X)
 	end
 end)
 
 UserInputService.InputEnded:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-		sliderDragging = false
+		activeSliderUpdate = nil
 	end
 end)
 
@@ -1010,6 +1157,10 @@ visualizeRangeBtn.MouseButton1Click:Connect(function()
 end)
 
 setDetectionRadius(DEFAULT_DETECTION_RADIUS)
+setSimpleSliderValue(redSlider, rangeColorR)
+setSimpleSliderValue(greenSlider, rangeColorG)
+setSimpleSliderValue(blueSlider, rangeColorB)
+setSimpleSliderValue(opacitySlider, rangeOpacityPercent)
 
 -- ========== RICH TEXT HELPERS ==========
 local function bT(s)     return "<b>"..s.."</b>" end
