@@ -2430,58 +2430,42 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 			rg.ZIndex = 10
 			mkC(rg, 3)
 
-			local dragging = false
-			local dragInput = nil
-			local dragStart = nil
-			local startPos = nil
+			win.Active = true
 
-			local resizing = false
-			local resizeInput = nil
-			local resizeStart = nil
-			local startSize = nil
+			local dragActive, dragOrigin, dragStartP = false, nil, nil
+			local resizeActive, resizeOrigin, resizeStartSz = false, nil, nil
 
-			local function beginDrag(input)
-				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-					dragging = true
-					dragInput = input
-					dragStart = input.Position
-					startPos = win.Position
-					input.Changed:Connect(function()
-						if input.UserInputState == Enum.UserInputState.End then
-							dragging = false
-						end
-					end)
+			tb.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+					dragActive = true; dragOrigin = i.Position; dragStartP = win.Position
 				end
-			end
-
-			tb.InputBegan:Connect(beginDrag)
-			tl.InputBegan:Connect(beginDrag)
-			tf.InputBegan:Connect(beginDrag)
-
-			rg.InputBegan:Connect(function(input)
-				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-					resizing = true
-					resizeInput = input
-					resizeStart = input.Position
-					startSize = win.AbsoluteSize
-					input.Changed:Connect(function()
-						if input.UserInputState == Enum.UserInputState.End then
-							resizing = false
-						end
-					end)
+			end)
+			tb.InputEnded:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+					dragActive = false
 				end
 			end)
 
-			UIS.InputChanged:Connect(function(input)
-				if dragging and dragInput and input == dragInput and dragStart and startPos then
-					local delta = input.Position - dragStart
-					win.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+			rg.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+					resizeActive = true; resizeOrigin = i.Position; resizeStartSz = win.AbsoluteSize
 				end
-				if resizing and resizeInput and input == resizeInput and resizeStart and startSize then
-					local delta = input.Position - resizeStart
-					local newW = math.clamp(startSize.X + delta.X, 360, 1200)
-					local newH = math.clamp(startSize.Y + delta.Y, 260, 900)
-					win.Size = UDim2.new(0, newW, 0, newH)
+			end)
+			rg.InputEnded:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+					resizeActive = false
+				end
+			end)
+
+			UIS.InputChanged:Connect(function(i)
+				if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then return end
+				if dragActive and dragOrigin and dragStartP then
+					local d = i.Position - dragOrigin
+					win.Position = UDim2.new(dragStartP.X.Scale, dragStartP.X.Offset + d.X, dragStartP.Y.Scale, dragStartP.Y.Offset + d.Y)
+				end
+				if resizeActive and resizeOrigin and resizeStartSz then
+					local d = i.Position - resizeOrigin
+					win.Size = UDim2.new(0, math.clamp(resizeStartSz.X + d.X, 360, 1200), 0, math.clamp(resizeStartSz.Y + d.Y, 260, 900))
 				end
 			end)
 		end
