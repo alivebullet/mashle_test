@@ -2376,52 +2376,59 @@ local function setupRemoteSpy()
 	if setreadonly then setreadonly(mt, false) end
 
 	local function hook(self, ...)
-		local method = "Unknown"
-		pcall(function() method = getnamecallmethod() end)
-		local shouldCapture = (method == "FireServer" or method == "InvokeServer")
-			and typeof(self) == "Instance"
-			and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+		local method = getnamecallmethod()
 
-		if shouldCapture then
-			local fromExecutor = false
-			if checkcaller then
-				local okCaller, callerState = pcall(checkcaller)
-				fromExecutor = okCaller and callerState or false
-			end
-
-			if not fromExecutor and not pausedIndividualRemotes[self.Name] then
-				local remote = self
-				local remoteName = self.Name
-				local args = {...}
-
-				-- Never block __namecall return: serialization/logging happens off-thread.
-				task.spawn(function()
-					local okAsync, asyncErr = pcall(function()
-						local okSer, argsStr = pcall(serializeArgs, args)
-						if not okSer then argsStr = "..." end
-
-						local preview = argsStr ~= "" and ("("..argsStr..")") or "()"
-						if #preview > 64 then preview = preview:sub(1,61).."..." end
-
-						pcall(addRemoteEntry, {
-							remote      = remote,
-							remoteName  = remoteName,
-							method      = method,
-							args        = args,
-							argsStr     = argsStr,
-							argsPreview = preview,
-							timestamp   = os.date("%H:%M:%S"),
-							player      = localPlayer,
-						})
-					end)
-
-					if not okAsync then
-						warn("[RemoteSpy] Async logging failed:", asyncErr)
-					end
-				end)
-			end
+		-- Clean passthrough for all non-remote calls.
+		if method ~= "FireServer" and method ~= "InvokeServer" then
+			return originalNamecall(self, ...)
 		end
-		return originalNamecall(self, ...)
+
+		if typeof(self) ~= "Instance" then
+			return originalNamecall(self, ...)
+		end
+
+		local isRemoteEvent = self:IsA("RemoteEvent")
+		local isRemoteFunction = self:IsA("RemoteFunction")
+		if not isRemoteEvent and not isRemoteFunction then
+			return originalNamecall(self, ...)
+		end
+
+		if checkcaller and checkcaller() then
+			return originalNamecall(self, ...)
+		end
+
+		if pausedIndividualRemotes[self.Name] then
+			return originalNamecall(self, ...)
+		end
+
+		-- Preserve original behavior/returns exactly, then log asynchronously.
+		local returns = table.pack(originalNamecall(self, ...))
+
+		-- Delay vararg packing until we know it's a remote call worth logging.
+		local remote = self
+		local remoteName = self.Name
+		local args = table.pack(...)
+
+		task.spawn(function()
+			local okSer, argsStr = pcall(serializeArgs, args)
+			if not okSer then argsStr = "..." end
+
+			local preview = argsStr ~= "" and ("("..argsStr..")") or "()"
+			if #preview > 64 then preview = preview:sub(1,61).."..." end
+
+			pcall(addRemoteEntry, {
+				remote      = remote,
+				remoteName  = remoteName,
+				method      = method,
+				args        = args,
+				argsStr     = argsStr,
+				argsPreview = preview,
+				timestamp   = os.date("%H:%M:%S"),
+				player      = localPlayer,
+			})
+		end)
+
+		return unpackArgs(returns, 1, returns.n)
 	end
 
 	mt.__namecall = newcclosure and newcclosure(hook) or hook
