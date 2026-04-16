@@ -2147,15 +2147,140 @@ local function addRemoteEntry(data)
 	end)
 end
 
-openPausedRemotesBtn.MouseButton1Click:Connect(function()
-	for _, c in ipairs(remoteScroll:GetChildren()) do
-		if c:IsA("TextButton") then c:Destroy() end
+local pausedRemotesPopup = Instance.new("Frame")
+pausedRemotesPopup.Size = UDim2.new(0, 360, 0, 360)
+pausedRemotesPopup.Position = UDim2.new(0, 900, 0, 80)
+pausedRemotesPopup.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+pausedRemotesPopup.BorderSizePixel = 0
+pausedRemotesPopup.Visible = false
+pausedRemotesPopup.Active = true
+pausedRemotesPopup.Parent = screenGui
+mkCorner(pausedRemotesPopup, 8)
+mkStroke(pausedRemotesPopup, Color3.fromRGB(55, 80, 120))
+
+local pausedRemotesTitleBar = Instance.new("Frame")
+pausedRemotesTitleBar.Size = UDim2.new(1, 0, 0, 32)
+pausedRemotesTitleBar.BackgroundColor3 = Color3.fromRGB(28, 38, 58)
+pausedRemotesTitleBar.BorderSizePixel = 0
+pausedRemotesTitleBar.Active = true
+pausedRemotesTitleBar.Parent = pausedRemotesPopup
+mkCorner(pausedRemotesTitleBar, 8)
+
+local pausedRemotesTitle = Instance.new("TextLabel")
+pausedRemotesTitle.Size = UDim2.new(1, -44, 1, 0)
+pausedRemotesTitle.Position = UDim2.new(0, 12, 0, 0)
+pausedRemotesTitle.BackgroundTransparency = 1
+pausedRemotesTitle.Text = "Paused Remotes"
+pausedRemotesTitle.TextColor3 = Color3.fromRGB(150, 205, 255)
+pausedRemotesTitle.TextXAlignment = Enum.TextXAlignment.Left
+pausedRemotesTitle.Font = Enum.Font.GothamBold
+pausedRemotesTitle.TextSize = 13
+pausedRemotesTitle.Parent = pausedRemotesTitleBar
+
+local pausedRemotesCloseBtn = Instance.new("TextButton")
+pausedRemotesCloseBtn.Size = UDim2.new(0, 24, 0, 22)
+pausedRemotesCloseBtn.Position = UDim2.new(1, -30, 0, 5)
+pausedRemotesCloseBtn.BackgroundColor3 = Theme.ButtonDanger
+pausedRemotesCloseBtn.Text = "X"
+pausedRemotesCloseBtn.TextColor3 = Theme.TextPrimary
+pausedRemotesCloseBtn.Font = Enum.Font.GothamBold
+pausedRemotesCloseBtn.TextSize = 12
+pausedRemotesCloseBtn.BorderSizePixel = 0
+pausedRemotesCloseBtn.Parent = pausedRemotesTitleBar
+mkCorner(pausedRemotesCloseBtn, 4)
+
+local pausedRemotesScroll = Instance.new("ScrollingFrame")
+pausedRemotesScroll.Size = UDim2.new(1, -16, 1, -44)
+pausedRemotesScroll.Position = UDim2.new(0, 8, 0, 36)
+pausedRemotesScroll.BackgroundColor3 = Color3.fromRGB(12, 13, 18)
+pausedRemotesScroll.BorderSizePixel = 0
+pausedRemotesScroll.ScrollBarThickness = 6
+pausedRemotesScroll.ScrollBarImageColor3 = Theme.ScrollBarColor
+pausedRemotesScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+pausedRemotesScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+pausedRemotesScroll.Parent = pausedRemotesPopup
+mkCorner(pausedRemotesScroll, 4)
+local prList = Instance.new("UIListLayout", pausedRemotesScroll)
+prList.SortOrder = Enum.SortOrder.LayoutOrder
+prList.Padding = UDim.new(0, 3)
+local prPad = Instance.new("UIPadding", pausedRemotesScroll)
+prPad.PaddingTop = UDim.new(0, 6)
+prPad.PaddingBottom = UDim.new(0, 6)
+prPad.PaddingLeft = UDim.new(0, 6)
+prPad.PaddingRight = UDim.new(0, 6)
+
+local pausedAnimationsPopup = Instance.new("Frame")
+pausedAnimationsPopup.Size = UDim2.new(0, 360, 0, 360)
+pausedAnimationsPopup.Position = UDim2.new(0, 900, 0, 460)
+pausedAnimationsPopup.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+pausedAnimationsPopup.BorderSizePixel = 0
+pausedAnimationsPopup.Visible = false
+pausedAnimationsPopup.Active = true
+pausedAnimationsPopup.Parent = screenGui
+mkCorner(pausedAnimationsPopup, 8)
+mkStroke(pausedAnimationsPopup, Color3.fromRGB(80, 80, 100))
+
+local pausedAnimationsTitleBar = Instance.new("Frame")
+pausedAnimationsTitleBar.Size = UDim2.new(1, 0, 0, 32)
+pausedAnimationsTitleBar.BackgroundColor3 = Color3.fromRGB(45, 35, 55)
+pausedAnimationsTitleBar.BorderSizePixel = 0
+pausedAnimationsTitleBar.Active = true
+pausedAnimationsTitleBar.Parent = pausedAnimationsPopup
+mkCorner(pausedAnimationsTitleBar, 8)
+
+local pausedAnimationsTitle = Instance.new("TextLabel")
+pausedAnimationsTitle.Size = UDim2.new(1, -44, 1, 0)
+pausedAnimationsTitle.Position = UDim2.new(0, 12, 0, 0)
+pausedAnimationsTitle.BackgroundTransparency = 1
+pausedAnimationsTitle.Text = "Paused Animations"
+pausedAnimationsTitle.TextColor3 = Color3.fromRGB(230, 200, 255)
+pausedAnimationsTitle.TextXAlignment = Enum.TextXAlignment.Left
+pausedAnimationsTitle.Font = Enum.Font.GothamBold
+pausedAnimationsTitle.TextSize = 13
+pausedAnimationsTitle.Parent = pausedAnimationsTitleBar
+
+local pausedAnimationsCloseBtn = Instance.new("TextButton")
+pausedAnimationsCloseBtn.Size = UDim2.new(0, 24, 0, 22)
+pausedAnimationsCloseBtn.Position = UDim2.new(1, -30, 0, 5)
+pausedAnimationsCloseBtn.BackgroundColor3 = Theme.ButtonDanger
+pausedAnimationsCloseBtn.Text = "X"
+pausedAnimationsCloseBtn.TextColor3 = Theme.TextPrimary
+pausedAnimationsCloseBtn.Font = Enum.Font.GothamBold
+pausedAnimationsCloseBtn.TextSize = 12
+pausedAnimationsCloseBtn.BorderSizePixel = 0
+pausedAnimationsCloseBtn.Parent = pausedAnimationsTitleBar
+mkCorner(pausedAnimationsCloseBtn, 4)
+
+local pausedAnimationsScroll = Instance.new("ScrollingFrame")
+pausedAnimationsScroll.Size = UDim2.new(1, -16, 1, -44)
+pausedAnimationsScroll.Position = UDim2.new(0, 8, 0, 36)
+pausedAnimationsScroll.BackgroundColor3 = Color3.fromRGB(12, 13, 18)
+pausedAnimationsScroll.BorderSizePixel = 0
+pausedAnimationsScroll.ScrollBarThickness = 6
+pausedAnimationsScroll.ScrollBarImageColor3 = Theme.ScrollBarColor
+pausedAnimationsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+pausedAnimationsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+pausedAnimationsScroll.Parent = pausedAnimationsPopup
+mkCorner(pausedAnimationsScroll, 4)
+local paList = Instance.new("UIListLayout", pausedAnimationsScroll)
+paList.SortOrder = Enum.SortOrder.LayoutOrder
+paList.Padding = UDim.new(0, 3)
+local paPad = Instance.new("UIPadding", pausedAnimationsScroll)
+paPad.PaddingTop = UDim.new(0, 6)
+paPad.PaddingBottom = UDim.new(0, 6)
+paPad.PaddingLeft = UDim.new(0, 6)
+paPad.PaddingRight = UDim.new(0, 6)
+
+local function clearPopupRows(scroll)
+	for _, c in ipairs(scroll:GetChildren()) do
+		if c:IsA("Frame") or c:IsA("TextLabel") then
+			c:Destroy()
+		end
 	end
-	remoteEntries = {}
-	remoteCount = 0
-	selectedRemoteData = nil
-	selectedRemoteEntry = nil
-	remDetailFrame.Visible = false
+end
+
+local function rebuildPausedRemotesPopup()
+	clearPopupRows(pausedRemotesScroll)
 
 	local names = {}
 	for rName, data in pairs(pausedRemoteArchive) do
@@ -2165,60 +2290,121 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 	end
 	table.sort(names)
 
-	local wasPaused = remoteLogPaused
-	remoteLogPaused = false
+	if #names == 0 then
+		local empty = Instance.new("TextLabel")
+		empty.Size = UDim2.new(1, -4, 0, 24)
+		empty.BackgroundTransparency = 1
+		empty.Text = "No paused remotes"
+		empty.TextColor3 = Theme.TextMuted
+		empty.TextXAlignment = Enum.TextXAlignment.Left
+		empty.Font = Enum.Font.Gotham
+		empty.TextSize = 11
+		empty.Parent = pausedRemotesScroll
+		return
+	end
+
 	for _, rName in ipairs(names) do
 		local data = pausedRemoteArchive[rName]
-		if data then
-			addRemoteEntry(data)
-		end
-	end
-	remoteLogPaused = wasPaused
+		local row = Instance.new("Frame")
+		row.Size = UDim2.new(1, -4, 0, 40)
+		row.BackgroundColor3 = Theme.EntryBg
+		row.BorderSizePixel = 0
+		row.Parent = pausedRemotesScroll
+		mkCorner(row, 4)
 
-	local restored = #names
-	openPausedRemotesBtn.Text = ("Opened %d paused"):format(restored)
-	task.delay(1.3, function()
-		if openPausedRemotesBtn and openPausedRemotesBtn.Parent then
-			openPausedRemotesBtn.Text = "Open Paused Remotes"
-		end
-	end)
-	updateStatus()
-	if remDetailFrame.Visible and selectedRemoteData then
-		showRemoteDetail(selectedRemoteData)
+		local title = Instance.new("TextLabel")
+		title.Size = UDim2.new(1, -12, 0, 16)
+		title.Position = UDim2.new(0, 6, 0, 3)
+		title.BackgroundTransparency = 1
+		title.Text = rName
+		title.TextColor3 = Color3.fromRGB(215,190,255)
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		title.Font = Enum.Font.GothamBold
+		title.TextSize = 11
+		title.TextTruncate = Enum.TextTruncate.AtEnd
+		title.Parent = row
+
+		local methodText = data and data.method or "?"
+		local info = Instance.new("TextLabel")
+		info.Size = UDim2.new(1, -12, 0, 14)
+		info.Position = UDim2.new(0, 6, 0, 22)
+		info.BackgroundTransparency = 1
+		info.Text = ("%s at %s"):format(methodText, (data and data.timestamp) or "??:??:??")
+		info.TextColor3 = Theme.TextMuted
+		info.TextXAlignment = Enum.TextXAlignment.Left
+		info.Font = Enum.Font.Code
+		info.TextSize = 9
+		info.TextTruncate = Enum.TextTruncate.AtEnd
+		info.Parent = row
 	end
+end
+
+local function rebuildPausedAnimationsPopup()
+	clearPopupRows(pausedAnimationsScroll)
+
+	if #pausedAnimationArchive == 0 then
+		local empty = Instance.new("TextLabel")
+		empty.Size = UDim2.new(1, -4, 0, 24)
+		empty.BackgroundTransparency = 1
+		empty.Text = "No paused animations"
+		empty.TextColor3 = Theme.TextMuted
+		empty.TextXAlignment = Enum.TextXAlignment.Left
+		empty.Font = Enum.Font.Gotham
+		empty.TextSize = 11
+		empty.Parent = pausedAnimationsScroll
+		return
+	end
+
+	for _, data in ipairs(pausedAnimationArchive) do
+		local row = Instance.new("Frame")
+		row.Size = UDim2.new(1, -4, 0, 40)
+		row.BackgroundColor3 = Theme.EntryBg
+		row.BorderSizePixel = 0
+		row.Parent = pausedAnimationsScroll
+		mkCorner(row, 4)
+
+		local title = Instance.new("TextLabel")
+		title.Size = UDim2.new(1, -12, 0, 16)
+		title.Position = UDim2.new(0, 6, 0, 3)
+		title.BackgroundTransparency = 1
+		title.Text = (data.animName or "Unnamed")
+		title.TextColor3 = Color3.fromRGB(255,160,140)
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		title.Font = Enum.Font.GothamBold
+		title.TextSize = 11
+		title.TextTruncate = Enum.TextTruncate.AtEnd
+		title.Parent = row
+
+		local info = Instance.new("TextLabel")
+		info.Size = UDim2.new(1, -12, 0, 14)
+		info.Position = UDim2.new(0, 6, 0, 22)
+		info.BackgroundTransparency = 1
+		info.Text = ("%s at %s"):format(data.animId or "Unknown", data.timestamp or "??:??:??")
+		info.TextColor3 = Theme.TextMuted
+		info.TextXAlignment = Enum.TextXAlignment.Left
+		info.Font = Enum.Font.Code
+		info.TextSize = 9
+		info.TextTruncate = Enum.TextTruncate.AtEnd
+		info.Parent = row
+	end
+end
+
+pausedRemotesCloseBtn.MouseButton1Click:Connect(function()
+	pausedRemotesPopup.Visible = false
+end)
+
+pausedAnimationsCloseBtn.MouseButton1Click:Connect(function()
+	pausedAnimationsPopup.Visible = false
+end)
+
+openPausedRemotesBtn.MouseButton1Click:Connect(function()
+	rebuildPausedRemotesPopup()
+	pausedRemotesPopup.Visible = true
 end)
 
 openPausedAnimationsBtn.MouseButton1Click:Connect(function()
-	for _, c in ipairs(scrollFrame:GetChildren()) do
-		if c:IsA("TextButton") then c:Destroy() end
-	end
-	animEntries = {}
-	detectionCount = 0
-	filteredCount = 0
-	currentAnimDetail = nil
-	detailFrame.Visible = false
-
-	local restored = 0
-	local wasPaused = animLogPaused
-	animLogPaused = false
-	for _, data in ipairs(pausedAnimationArchive) do
-		if data then
-			addLogEntry(data)
-			restored += 1
-		end
-	end
-	animLogPaused = wasPaused
-
-	openPausedAnimationsBtn.Text = ("Opened %d paused"):format(restored)
-	task.delay(1.3, function()
-		if openPausedAnimationsBtn and openPausedAnimationsBtn.Parent then
-			openPausedAnimationsBtn.Text = "Open Paused Animations"
-		end
-	end)
-	updateStatus()
-	if detailFrame.Visible and currentAnimDetail then
-		refreshAnimDetail()
-	end
+	rebuildPausedAnimationsPopup()
+	pausedAnimationsPopup.Visible = true
 end)
 
 exportRemotesBtn.MouseButton1Click:Connect(function()
