@@ -2146,72 +2146,290 @@ local function addRemoteEntry(data)
 		remoteScroll.CanvasPosition = Vector2.new(0, remoteScroll.AbsoluteCanvasSize.Y)
 	end)
 end
+local _pausedRemotesGui = nil
 openPausedRemotesBtn.MouseButton1Click:Connect(function()
-	for _, c in ipairs(remoteScroll:GetChildren()) do
+	if not _pausedRemotesGui then
+		pcall(function()
+			local gui = Instance.new("ScreenGui")
+			gui.Name = "PausedRemotesPopup"
+			gui.ResetOnSpawn = false
+			gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+			gui.DisplayOrder = 20
+			gui.Enabled = false
+			gui.Parent = playerGui
+
+			local win = Instance.new("Frame", gui)
+			win.Name = "Win"
+			win.Size = UDim2.new(0, 480, 0, 360)
+			win.Position = UDim2.new(0.5, -240, 0.5, -180)
+			win.BackgroundColor3 = Theme.Background
+			win.BorderSizePixel = 0
+			mkCorner(win, 8)
+			mkStroke(win, Theme.StrokeColor)
+
+			local titleBar = Instance.new("Frame", win)
+			titleBar.Name = "TitleBar"
+			titleBar.Size = UDim2.new(1, 0, 0, 32)
+			titleBar.BackgroundColor3 = Theme.TitleBar
+			titleBar.BorderSizePixel = 0
+			mkCorner(titleBar, 8)
+			local titleFill = Instance.new("Frame", win)
+			titleFill.Size = UDim2.new(1, 0, 0, 8)
+			titleFill.Position = UDim2.new(0, 0, 0, 24)
+			titleFill.BackgroundColor3 = Theme.TitleBar
+			titleFill.BorderSizePixel = 0
+
+			local titleLbl = Instance.new("TextLabel", titleBar)
+			titleLbl.Name = "TitleLbl"
+			titleLbl.Size = UDim2.new(1, -40, 1, 0)
+			titleLbl.Position = UDim2.new(0, 10, 0, 0)
+			titleLbl.BackgroundTransparency = 1
+			titleLbl.Text = "Paused Remotes"
+			titleLbl.TextColor3 = Theme.TextPrimary
+			titleLbl.Font = Enum.Font.GothamBold
+			titleLbl.TextSize = 13
+			titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+			local closeBtn = Instance.new("TextButton", titleBar)
+			closeBtn.Size = UDim2.new(0, 26, 0, 20)
+			closeBtn.Position = UDim2.new(1, -30, 0.5, -10)
+			closeBtn.BackgroundColor3 = Theme.ButtonDanger
+			closeBtn.Text = "✕"
+			closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+			closeBtn.Font = Enum.Font.GothamBold
+			closeBtn.TextSize = 11
+			closeBtn.BorderSizePixel = 0
+			closeBtn.AutoButtonColor = false
+			mkCorner(closeBtn, 4)
+			closeBtn.MouseButton1Click:Connect(function() gui.Enabled = false end)
+
+			local scroll = Instance.new("ScrollingFrame", win)
+			scroll.Name = "Scroll"
+			scroll.Size = UDim2.new(1, -8, 1, -40)
+			scroll.Position = UDim2.new(0, 4, 0, 36)
+			scroll.BackgroundTransparency = 1
+			scroll.BorderSizePixel = 0
+			scroll.ScrollBarThickness = 4
+			scroll.ScrollBarImageColor3 = Theme.ScrollBarColor
+			scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+			scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+			local layout = Instance.new("UIListLayout", scroll)
+			layout.SortOrder = Enum.SortOrder.LayoutOrder
+			layout.Padding = UDim.new(0, 3)
+
+			_pausedRemotesGui = gui
+		end)
+	end
+
+	if not _pausedRemotesGui then return end
+	local win = _pausedRemotesGui:FindFirstChild("Win")
+	if not win then return end
+	local scroll = win:FindFirstChild("Scroll")
+	if not scroll then return end
+
+	for _, c in ipairs(scroll:GetChildren()) do
 		if c:IsA("TextButton") then c:Destroy() end
 	end
-	remoteEntries = {}
-	remoteCount = 0
-	selectedRemoteData = nil
-	selectedRemoteEntry = nil
-	remDetailFrame.Visible = false
 
 	local names = {}
-	for rName, data in pairs(pausedRemoteArchive) do
-		if pausedIndividualRemotes[rName] and data then
-			table.insert(names, rName)
-		end
+	for rName in pairs(pausedIndividualRemotes) do
+		if pausedRemoteArchive[rName] then table.insert(names, rName) end
 	end
 	table.sort(names)
 
-	local wasPaused = remoteLogPaused
-	remoteLogPaused = false
-	for _, rName in ipairs(names) do
+	for i, rName in ipairs(names) do
 		local data = pausedRemoteArchive[rName]
 		if data then
-			addRemoteEntry(data)
+			local entry = Instance.new("TextButton", scroll)
+			entry.Size = UDim2.new(1, -4, 0, 46)
+			entry.BackgroundColor3 = Theme.EntryBg
+			entry.BorderSizePixel = 0
+			entry.LayoutOrder = i
+			entry.AutoButtonColor = false
+			entry.Text = ""
+			mkCorner(entry, 4)
+
+			local badge = Instance.new("TextLabel", entry)
+			badge.Size = UDim2.new(0, 28, 0, 12)
+			badge.Position = UDim2.new(0, 4, 0, 4)
+			badge.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+			badge.TextColor3 = Color3.fromRGB(255, 255, 255)
+			badge.Text = data.method or "?"
+			badge.Font = Enum.Font.GothamBold
+			badge.TextSize = 8
+			badge.BorderSizePixel = 0
+			mkCorner(badge, 3)
+
+			local ts = Instance.new("TextLabel", entry)
+			ts.Size = UDim2.new(0, 58, 0, 15)
+			ts.Position = UDim2.new(1, -62, 0, 4)
+			ts.BackgroundTransparency = 1
+			ts.Text = data.timestamp or ""
+			ts.TextColor3 = Color3.fromRGB(110, 110, 130)
+			ts.TextXAlignment = Enum.TextXAlignment.Right
+			ts.Font = Enum.Font.Gotham
+			ts.TextSize = 9
+
+			local nameLine = Instance.new("TextLabel", entry)
+			nameLine.Size = UDim2.new(1, -10, 0, 14)
+			nameLine.Position = UDim2.new(0, 6, 0, 20)
+			nameLine.BackgroundTransparency = 1
+			nameLine.Text = data.remoteName or rName
+			nameLine.TextColor3 = Color3.fromRGB(215, 190, 255)
+			nameLine.TextXAlignment = Enum.TextXAlignment.Left
+			nameLine.Font = Enum.Font.GothamBold
+			nameLine.TextSize = 11
+			nameLine.TextTruncate = Enum.TextTruncate.AtEnd
+
+			local argsLine = Instance.new("TextLabel", entry)
+			argsLine.Size = UDim2.new(1, -10, 0, 12)
+			argsLine.Position = UDim2.new(0, 6, 0, 31)
+			argsLine.BackgroundTransparency = 1
+			argsLine.Text = data.argsPreview or ""
+			argsLine.TextColor3 = Color3.fromRGB(140, 155, 165)
+			argsLine.TextXAlignment = Enum.TextXAlignment.Left
+			argsLine.Font = Enum.Font.Code
+			argsLine.TextSize = 9
+			argsLine.TextTruncate = Enum.TextTruncate.AtEnd
+
+			entry.MouseEnter:Connect(function() entry.BackgroundColor3 = Theme.EntryHover end)
+			entry.MouseLeave:Connect(function() entry.BackgroundColor3 = Theme.EntryBg end)
 		end
 	end
-	remoteLogPaused = wasPaused
 
-	local restored = #names
-	openPausedRemotesBtn.Text = ("Opened %d paused"):format(restored)
-	task.delay(1.3, function()
-		if openPausedRemotesBtn and openPausedRemotesBtn.Parent then
-			openPausedRemotesBtn.Text = "Open Paused Remotes"
-		end
-	end)
-	updateStatus()
+	local titleLbl = win.TitleBar:FindFirstChild("TitleLbl")
+	if titleLbl then titleLbl.Text = ("Paused Remotes (%d)"):format(#names) end
+	_pausedRemotesGui.Enabled = true
 end)
 
+local _pausedAnimationsGui = nil
 openPausedAnimationsBtn.MouseButton1Click:Connect(function()
-	for _, c in ipairs(scrollFrame:GetChildren()) do
+	if not _pausedAnimationsGui then
+		pcall(function()
+			local gui = Instance.new("ScreenGui")
+			gui.Name = "PausedAnimationsPopup"
+			gui.ResetOnSpawn = false
+			gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+			gui.DisplayOrder = 20
+			gui.Enabled = false
+			gui.Parent = playerGui
+
+			local win = Instance.new("Frame", gui)
+			win.Name = "Win"
+			win.Size = UDim2.new(0, 480, 0, 360)
+			win.Position = UDim2.new(0.5, -240, 0.5, -180)
+			win.BackgroundColor3 = Theme.Background
+			win.BorderSizePixel = 0
+			mkCorner(win, 8)
+			mkStroke(win, Theme.StrokeColor)
+
+			local titleBar = Instance.new("Frame", win)
+			titleBar.Name = "TitleBar"
+			titleBar.Size = UDim2.new(1, 0, 0, 32)
+			titleBar.BackgroundColor3 = Theme.TitleBar
+			titleBar.BorderSizePixel = 0
+			mkCorner(titleBar, 8)
+			local titleFill = Instance.new("Frame", win)
+			titleFill.Size = UDim2.new(1, 0, 0, 8)
+			titleFill.Position = UDim2.new(0, 0, 0, 24)
+			titleFill.BackgroundColor3 = Theme.TitleBar
+			titleFill.BorderSizePixel = 0
+
+			local titleLbl = Instance.new("TextLabel", titleBar)
+			titleLbl.Name = "TitleLbl"
+			titleLbl.Size = UDim2.new(1, -40, 1, 0)
+			titleLbl.Position = UDim2.new(0, 10, 0, 0)
+			titleLbl.BackgroundTransparency = 1
+			titleLbl.Text = "Paused Animations"
+			titleLbl.TextColor3 = Theme.TextPrimary
+			titleLbl.Font = Enum.Font.GothamBold
+			titleLbl.TextSize = 13
+			titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+			local closeBtn = Instance.new("TextButton", titleBar)
+			closeBtn.Size = UDim2.new(0, 26, 0, 20)
+			closeBtn.Position = UDim2.new(1, -30, 0.5, -10)
+			closeBtn.BackgroundColor3 = Theme.ButtonDanger
+			closeBtn.Text = "✕"
+			closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+			closeBtn.Font = Enum.Font.GothamBold
+			closeBtn.TextSize = 11
+			closeBtn.BorderSizePixel = 0
+			closeBtn.AutoButtonColor = false
+			mkCorner(closeBtn, 4)
+			closeBtn.MouseButton1Click:Connect(function() gui.Enabled = false end)
+
+			local scroll = Instance.new("ScrollingFrame", win)
+			scroll.Name = "Scroll"
+			scroll.Size = UDim2.new(1, -8, 1, -40)
+			scroll.Position = UDim2.new(0, 4, 0, 36)
+			scroll.BackgroundTransparency = 1
+			scroll.BorderSizePixel = 0
+			scroll.ScrollBarThickness = 4
+			scroll.ScrollBarImageColor3 = Theme.ScrollBarColor
+			scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+			scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+			local layout = Instance.new("UIListLayout", scroll)
+			layout.SortOrder = Enum.SortOrder.LayoutOrder
+			layout.Padding = UDim.new(0, 3)
+
+			_pausedAnimationsGui = gui
+		end)
+	end
+
+	if not _pausedAnimationsGui then return end
+	local win = _pausedAnimationsGui:FindFirstChild("Win")
+	if not win then return end
+	local scroll = win:FindFirstChild("Scroll")
+	if not scroll then return end
+
+	for _, c in ipairs(scroll:GetChildren()) do
 		if c:IsA("TextButton") then c:Destroy() end
 	end
-	animEntries = {}
-	detectionCount = 0
-	filteredCount = 0
-	currentAnimDetail = nil
-	detailFrame.Visible = false
 
-	local restored = 0
-	local wasPaused = animLogPaused
-	animLogPaused = false
-	for _, data in ipairs(pausedAnimationArchive) do
+	for i, data in ipairs(pausedAnimationArchive) do
 		if data then
-			addLogEntry(data)
-			restored += 1
+			local player = data.player or Players:GetPlayerFromCharacter(data.character)
+			local displayName = (player and (player.DisplayName .. " (@" .. player.Name .. ")")) or (data.character and data.character.Name) or "Unknown"
+
+			local entry = Instance.new("TextButton", scroll)
+			entry.Size = UDim2.new(1, -4, 0, 38)
+			entry.BackgroundColor3 = Theme.EntryBg
+			entry.BorderSizePixel = 0
+			entry.LayoutOrder = i
+			entry.AutoButtonColor = false
+			entry.Text = ""
+			mkCorner(entry, 4)
+
+			local top = Instance.new("TextLabel", entry)
+			top.Size = UDim2.new(1, -8, 0, 16)
+			top.Position = UDim2.new(0, 6, 0, 2)
+			top.BackgroundTransparency = 1
+			top.Text = ("[%s] %s — %.1f studs"):format(data.timestamp or "??:??:??", displayName, data.distance or 0)
+			top.TextColor3 = Color3.fromRGB(255, 160, 140)
+			top.TextXAlignment = Enum.TextXAlignment.Left
+			top.Font = Enum.Font.GothamBold
+			top.TextSize = 11
+
+			local bot = Instance.new("TextLabel", entry)
+			bot.Size = UDim2.new(1, -8, 0, 16)
+			bot.Position = UDim2.new(0, 6, 0, 18)
+			bot.BackgroundTransparency = 1
+			bot.Text = ("%s  (%s)"):format(data.animName or "Unnamed", data.animId or "Unknown")
+			bot.TextColor3 = Theme.TextSecondary
+			bot.TextXAlignment = Enum.TextXAlignment.Left
+			bot.Font = Enum.Font.Code
+			bot.TextSize = 10
+			bot.TextTruncate = Enum.TextTruncate.AtEnd
+
+			entry.MouseEnter:Connect(function() entry.BackgroundColor3 = Theme.EntryHover end)
+			entry.MouseLeave:Connect(function() entry.BackgroundColor3 = Theme.EntryBg end)
 		end
 	end
-	animLogPaused = wasPaused
 
-	openPausedAnimationsBtn.Text = ("Opened %d paused"):format(restored)
-	task.delay(1.3, function()
-		if openPausedAnimationsBtn and openPausedAnimationsBtn.Parent then
-			openPausedAnimationsBtn.Text = "Open Paused Animations"
-		end
-	end)
-	updateStatus()
+	local titleLbl = win.TitleBar:FindFirstChild("TitleLbl")
+	if titleLbl then titleLbl.Text = ("Paused Animations (%d)"):format(#pausedAnimationArchive) end
+	_pausedAnimationsGui.Enabled = true
 end)
 
 exportRemotesBtn.MouseButton1Click:Connect(function()
