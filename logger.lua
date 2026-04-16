@@ -92,8 +92,9 @@ local function getRemotePath(remote)
 end
 
 -- Compact serializer used for log entry previews
-local function serializeArg(v, depth)
+local function serializeArg(v, depth, seen)
 	depth = depth or 0
+	seen = seen or {}
 	local t = typeof(v)
 	if     t == "string"   then return string.format("%q", v)
 	elseif t == "number"   then return tostring(v)
@@ -108,17 +109,20 @@ local function serializeArg(v, depth)
 		local p = v.Position;
 		return ("CFrame.new(%g,%g,%g)"):format(p.X, p.Y, p.Z)
 	elseif t == "table" then
+		if seen[v] then return "{<cycle>}" end
 		if depth >= 2 then return "{...}" end
+		seen[v] = true
 		local items, n = {}, 0
 		for k, val in pairs(v) do
 			n += 1;
 			if n > 6 then table.insert(items, "..."); break end
 			if type(k) == "number" then
-				table.insert(items, serializeArg(val, depth+1))
+				table.insert(items, serializeArg(val, depth+1, seen))
 			else
-				table.insert(items, tostring(k).."="..serializeArg(val, depth+1))
+				table.insert(items, tostring(k).."="..serializeArg(val, depth+1, seen))
 			end
 		end
+		seen[v] = nil
 		return "{"..table.concat(items, ", ").."}"
 	else return tostring(v) end
 end
@@ -173,7 +177,7 @@ end
 
 local function serializeArgs(args)
 	local parts = {}
-	for _, v in ipairs(args) do table.insert(parts, serializeArg(v)) end
+	for _, v in ipairs(args) do table.insert(parts, serializeArg(v, 0, {})) end
 	return table.concat(parts, ", ")
 end
 
@@ -2374,33 +2378,48 @@ local function setupRemoteSpy()
 	local function hook(self, ...)
 		local method = "Unknown"
 		pcall(function() method = getnamecallmethod() end)
-		if (method == "FireServer" or method == "InvokeServer")
+		local shouldCapture = (method == "FireServer" or method == "InvokeServer")
 			and typeof(self) == "Instance"
-			and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) then
-			
-			-- IGNORE IF IN INDIVIDUAL PAUSE LIST
-			if pausedIndividualRemotes[self.Name] then
-				return originalNamecall(self, ...)
+			and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+
+		if shouldCapture then
+			local fromExecutor = false
+			if checkcaller then
+				local okCaller, callerState = pcall(checkcaller)
+				fromExecutor = okCaller and callerState or false
 			end
 
-			local args = {...}
-			local ok, argsStr = pcall(serializeArgs, args)
-			if not ok then argsStr = "..." end
-			local preview = argsStr ~= "" and ("("..argsStr..")") or "()"
-			if #preview > 64 then preview = preview:sub(1,61).."..." end
+			if not fromExecutor and not pausedIndividualRemotes[self.Name] then
+				local remote = self
+				local remoteName = self.Name
+				local args = {...}
 
-			task.defer(function()
-				pcall(addRemoteEntry, {
-					remote      = self,
-					remoteName  = self.Name,
-					method      = method,
-					args        = args,
-					argsStr     = argsStr,
-					argsPreview = preview,
-					timestamp   = os.date("%H:%M:%S"),
-					player      = localPlayer,
-				})
-			end)
+				-- Never block __namecall return: serialization/logging happens off-thread.
+				task.spawn(function()
+					local okAsync, asyncErr = pcall(function()
+						local okSer, argsStr = pcall(serializeArgs, args)
+						if not okSer then argsStr = "..." end
+
+						local preview = argsStr ~= "" and ("("..argsStr..")") or "()"
+						if #preview > 64 then preview = preview:sub(1,61).."..." end
+
+						pcall(addRemoteEntry, {
+							remote      = remote,
+							remoteName  = remoteName,
+							method      = method,
+							args        = args,
+							argsStr     = argsStr,
+							argsPreview = preview,
+							timestamp   = os.date("%H:%M:%S"),
+							player      = localPlayer,
+						})
+					end)
+
+					if not okAsync then
+						warn("[RemoteSpy] Async logging failed:", asyncErr)
+					end
+				end)
+			end
 		end
 		return originalNamecall(self, ...)
 	end
