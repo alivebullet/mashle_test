@@ -13,7 +13,7 @@ local MAX_WIDTH, MAX_HEIGHT = 1200, 900
 
 local localPlayer = Players.LocalPlayer
 local playerGui   = localPlayer:WaitForChild("PlayerGui")
-
+ 
 -- ========== THEME CONSTANTS ==========
 local Theme = {
 	Background     = Color3.fromRGB(25, 25, 30),
