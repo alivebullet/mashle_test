@@ -1,6 +1,7 @@
 -- AnimationDetectorUI.lua
 -- LocalScript — place in StarterPlayerScripts
 -- Enhanced version with pause, search, export, player filtering, theme constants, and better cleanup.
+local __BOOT_OK, __BOOT_ERR = xpcall(function()
 local Players          = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local CollectionService = game:GetService("CollectionService")
@@ -2795,4 +2796,15 @@ end
 
 if type(setupRemoteSpy) == "function" then
 	pcall(setupRemoteSpy)
+end
+end, function(err)
+	local trace = ""
+	if debug and type(debug.traceback) == "function" then
+		trace = debug.traceback(nil, 2)
+	end
+	return tostring(err) .. (trace ~= "" and ("\n" .. trace) or "")
+end)
+
+if not __BOOT_OK then
+	warn("[BootError] " .. tostring(__BOOT_ERR))
 end
