@@ -392,7 +392,7 @@ local function destroyScriptUI()
 end
 
 mainCloseBtn.MouseButton1Click:Connect(function()
-	if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift) then
+	if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.RightControl) then
 		confirmFrame.Visible = true
 	else
 		mainFrame.Visible = false;
