@@ -2380,12 +2380,13 @@ local function setupRemoteSpy()
 			return oldNamecall(self, ...)
 		end
 
-		if typeof(self) == "Instance"
-			and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
-			and (not checkcaller or not checkcaller())
-			and not pausedIndividualRemotes[self.Name] then
-			local remote = self
-			local remoteName = self.Name
+		local remote = self
+		local remoteName = tostring(self)
+		if typeof(self) == "Instance" then
+			remoteName = self.Name
+		end
+
+		if not pausedIndividualRemotes[remoteName] then
 			local args = {...}
 
 			task.defer(function()
