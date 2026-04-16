@@ -408,12 +408,30 @@ confirmNo.MouseButton1Click:Connect(function()
 	confirmFrame.Visible = false
 end)
 
+local reopenCloseBtn = Instance.new("TextButton")
+reopenCloseBtn.Size             = UDim2.new(0, 24, 0, 32)
+reopenCloseBtn.Position         = UDim2.new(0, 156, 0, 80)
+reopenCloseBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+reopenCloseBtn.Text             = "X"
+reopenCloseBtn.TextColor3       = Theme.TextPrimary
+reopenCloseBtn.Font             = Enum.Font.GothamBold
+reopenCloseBtn.TextSize         = 12
+reopenCloseBtn.BorderSizePixel  = 0
+reopenCloseBtn.Visible          = false
+reopenCloseBtn.Parent           = screenGui
+mkCorner(reopenCloseBtn, 6)
+
 reopenBtn.MouseButton1Click:Connect(function()
-	mainFrame.Visible = true; reopenBtn.Visible = false
+	mainFrame.Visible = true
+	reopenBtn.Visible = false
+	reopenCloseBtn.Visible = false
 end)
 
--- ===== Tab Bar =====
-local tabBar = Instance.new("Frame")
+reopenCloseBtn.MouseButton1Click:Connect(function()
+	confirmFrame.Visible = true
+end)
+
+-- ===== Tab Bar =====nlocal tabBar = Instance.new("Frame")
 tabBar.Size             = UDim2.new(1, 0, 0, 28)
 tabBar.Position         = UDim2.new(0, 0, 0, 32)
 tabBar.BackgroundColor3 = Color3.fromRGB(18, 18, 23)
