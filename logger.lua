@@ -571,23 +571,43 @@ settingsTitle.Font = Enum.Font.GothamBold
 settingsTitle.TextSize = 13
 settingsTitle.Parent = settingsPanel
 
+local detectionSection = Instance.new("Frame")
+detectionSection.Size = UDim2.new(1, -20, 1, -42)
+detectionSection.Position = UDim2.new(0, 10, 0, 40)
+detectionSection.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+detectionSection.BorderSizePixel = 0
+detectionSection.Parent = settingsPanel
+mkCorner(detectionSection, 6)
+mkStroke(detectionSection, Color3.fromRGB(62, 62, 82))
+
+local detectionSectionTitle = Instance.new("TextLabel")
+detectionSectionTitle.Size = UDim2.new(1, -16, 0, 18)
+detectionSectionTitle.Position = UDim2.new(0, 8, 0, 8)
+detectionSectionTitle.BackgroundTransparency = 1
+detectionSectionTitle.Text = "Detection Range"
+detectionSectionTitle.TextColor3 = Theme.TextPrimary
+detectionSectionTitle.TextXAlignment = Enum.TextXAlignment.Left
+detectionSectionTitle.Font = Enum.Font.GothamBold
+detectionSectionTitle.TextSize = 11
+detectionSectionTitle.Parent = detectionSection
+
 local rangeValueLabel = Instance.new("TextLabel")
 rangeValueLabel.Size = UDim2.new(1, -20, 0, 22)
-rangeValueLabel.Position = UDim2.new(0, 10, 0, 46)
+rangeValueLabel.Position = UDim2.new(0, 10, 0, 30)
 rangeValueLabel.BackgroundTransparency = 1
 rangeValueLabel.Text = "Detection Range: 100 studs"
 rangeValueLabel.TextColor3 = Color3.fromRGB(165, 215, 255)
 rangeValueLabel.TextXAlignment = Enum.TextXAlignment.Left
 rangeValueLabel.Font = Enum.Font.Gotham
 rangeValueLabel.TextSize = 11
-rangeValueLabel.Parent = settingsPanel
+rangeValueLabel.Parent = detectionSection
 
 local rangeSliderTrack = Instance.new("Frame")
 rangeSliderTrack.Size = UDim2.new(1, -20, 0, 12)
-rangeSliderTrack.Position = UDim2.new(0, 10, 0, 74)
+rangeSliderTrack.Position = UDim2.new(0, 10, 0, 54)
 rangeSliderTrack.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 rangeSliderTrack.BorderSizePixel = 0
-rangeSliderTrack.Parent = settingsPanel
+rangeSliderTrack.Parent = detectionSection
 mkCorner(rangeSliderTrack, 6)
 
 local rangeSliderFill = Instance.new("Frame")
@@ -607,36 +627,36 @@ mkCorner(rangeSliderKnob, 7)
 
 local rangeMinLabel = Instance.new("TextLabel")
 rangeMinLabel.Size = UDim2.new(0, 28, 0, 16)
-rangeMinLabel.Position = UDim2.new(0, 10, 0, 90)
+rangeMinLabel.Position = UDim2.new(0, 10, 0, 70)
 rangeMinLabel.BackgroundTransparency = 1
 rangeMinLabel.Text = "0"
 rangeMinLabel.TextColor3 = Theme.TextMuted
 rangeMinLabel.Font = Enum.Font.Gotham
 rangeMinLabel.TextSize = 10
 rangeMinLabel.TextXAlignment = Enum.TextXAlignment.Left
-rangeMinLabel.Parent = settingsPanel
+rangeMinLabel.Parent = detectionSection
 
 local rangeMaxLabel = Instance.new("TextLabel")
 rangeMaxLabel.Size = UDim2.new(0, 40, 0, 16)
-rangeMaxLabel.Position = UDim2.new(1, -50, 0, 90)
+rangeMaxLabel.Position = UDim2.new(1, -50, 0, 70)
 rangeMaxLabel.BackgroundTransparency = 1
 rangeMaxLabel.Text = "200"
 rangeMaxLabel.TextColor3 = Theme.TextMuted
 rangeMaxLabel.Font = Enum.Font.Gotham
 rangeMaxLabel.TextSize = 10
 rangeMaxLabel.TextXAlignment = Enum.TextXAlignment.Right
-rangeMaxLabel.Parent = settingsPanel
+rangeMaxLabel.Parent = detectionSection
 
 local visualizeRangeBtn = Instance.new("TextButton")
 visualizeRangeBtn.Size = UDim2.new(0, 170, 0, 24)
-visualizeRangeBtn.Position = UDim2.new(0, 10, 0, 126)
+visualizeRangeBtn.Position = UDim2.new(0, 10, 0, 92)
 visualizeRangeBtn.BackgroundColor3 = Theme.ButtonDefault
 visualizeRangeBtn.Text = "Visualize Range: OFF"
 visualizeRangeBtn.TextColor3 = Theme.TextPrimary
 visualizeRangeBtn.Font = Enum.Font.Gotham
 visualizeRangeBtn.TextSize = 10
 visualizeRangeBtn.BorderSizePixel = 0
-visualizeRangeBtn.Parent = settingsPanel
+visualizeRangeBtn.Parent = detectionSection
 mkCorner(visualizeRangeBtn, 4)
 
 local function createSimpleSlider(parent, y, labelText, minVal, maxVal)
@@ -698,62 +718,66 @@ end
 
 local visualSettingsLabel = Instance.new("TextLabel")
 visualSettingsLabel.Size = UDim2.new(1, -20, 0, 20)
-visualSettingsLabel.Position = UDim2.new(0, 10, 0, 154)
+visualSettingsLabel.Position = UDim2.new(0, 10, 0, 120)
 visualSettingsLabel.BackgroundTransparency = 1
-visualSettingsLabel.Text = "Visualizer Style"
+visualSettingsLabel.Text = "Color & Opacity"
 visualSettingsLabel.TextColor3 = Theme.TextPrimary
 visualSettingsLabel.TextXAlignment = Enum.TextXAlignment.Left
 visualSettingsLabel.Font = Enum.Font.GothamBold
 visualSettingsLabel.TextSize = 11
-visualSettingsLabel.Parent = settingsPanel
+visualSettingsLabel.Parent = detectionSection
 
 local colorPreviewLabel = Instance.new("TextLabel")
-colorPreviewLabel.Size = UDim2.new(0, 74, 0, 16)
-colorPreviewLabel.Position = UDim2.new(0, 10, 0, 180)
+colorPreviewLabel.Size = UDim2.new(0, 48, 0, 16)
+colorPreviewLabel.Position = UDim2.new(0, 8, 0, 6)
 colorPreviewLabel.BackgroundTransparency = 1
 colorPreviewLabel.Text = "Color"
 colorPreviewLabel.TextColor3 = Theme.TextSecondary
 colorPreviewLabel.TextXAlignment = Enum.TextXAlignment.Left
 colorPreviewLabel.Font = Enum.Font.Gotham
 colorPreviewLabel.TextSize = 10
-colorPreviewLabel.Parent = settingsPanel
+colorPreviewLabel.Parent = detectionSection
 
 local colorHexLabel = Instance.new("TextLabel")
-colorHexLabel.Size = UDim2.new(0, 86, 0, 16)
-colorHexLabel.Position = UDim2.new(1, -96, 0, 180)
+colorHexLabel.Size = UDim2.new(0, 62, 0, 16)
+colorHexLabel.Position = UDim2.new(1, -92, 0, 6)
 colorHexLabel.BackgroundTransparency = 1
 colorHexLabel.Text = "#4B82FF"
 colorHexLabel.TextColor3 = Theme.TextMuted
 colorHexLabel.TextXAlignment = Enum.TextXAlignment.Right
 colorHexLabel.Font = Enum.Font.Gotham
 colorHexLabel.TextSize = 10
-colorHexLabel.Parent = settingsPanel
+colorHexLabel.Parent = detectionSection
 
 local colorPreviewSwatch = Instance.new("Frame")
 colorPreviewSwatch.Size = UDim2.new(0, 20, 0, 20)
-colorPreviewSwatch.Position = UDim2.new(0, 220, 0, 178)
+colorPreviewSwatch.Position = UDim2.new(1, -26, 0, 4)
 colorPreviewSwatch.BackgroundColor3 = Color3.fromRGB(75, 130, 255)
 colorPreviewSwatch.BorderSizePixel = 0
-colorPreviewSwatch.Parent = settingsPanel
+colorPreviewSwatch.Parent = detectionSection
 mkCorner(colorPreviewSwatch, 4)
 mkStroke(colorPreviewSwatch, Color3.fromRGB(85, 85, 105))
 
 local colorPickerFrame = Instance.new("Frame")
-colorPickerFrame.Size = UDim2.new(0, 220, 0, 128)
-colorPickerFrame.Position = UDim2.new(1, -230, 0, 116)
+colorPickerFrame.Size = UDim2.new(1, -20, 0, 88)
+colorPickerFrame.Position = UDim2.new(0, 10, 0, 136)
 colorPickerFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
 colorPickerFrame.BorderSizePixel = 0
 colorPickerFrame.Visible = true
 colorPickerFrame.ZIndex = 8
-colorPickerFrame.Parent = settingsPanel
+colorPickerFrame.Parent = detectionSection
 mkCorner(colorPickerFrame, 6)
 mkStroke(colorPickerFrame, Color3.fromRGB(78, 78, 98))
+
+colorPreviewLabel.Parent = colorPickerFrame
+colorHexLabel.Parent = colorPickerFrame
+colorPreviewSwatch.Parent = colorPickerFrame
 
 local colorPickerTitle = Instance.new("TextLabel")
 colorPickerTitle.Size = UDim2.new(1, -16, 0, 18)
 colorPickerTitle.Position = UDim2.new(0, 8, 0, 5)
 colorPickerTitle.BackgroundTransparency = 1
-colorPickerTitle.Text = "Color Controls"
+colorPickerTitle.Text = ""
 colorPickerTitle.TextColor3 = Theme.TextPrimary
 colorPickerTitle.TextXAlignment = Enum.TextXAlignment.Left
 colorPickerTitle.Font = Enum.Font.GothamBold
@@ -763,7 +787,7 @@ colorPickerTitle.Parent = colorPickerFrame
 
 local hueLabel = Instance.new("TextLabel")
 hueLabel.Size = UDim2.new(0, 56, 0, 16)
-hueLabel.Position = UDim2.new(0, 8, 0, 28)
+hueLabel.Position = UDim2.new(0, 8, 0, 24)
 hueLabel.BackgroundTransparency = 1
 hueLabel.Text = "Hue"
 hueLabel.TextColor3 = Theme.TextSecondary
@@ -775,7 +799,7 @@ hueLabel.Parent = colorPickerFrame
 
 local hueValueLabel = Instance.new("TextLabel")
 hueValueLabel.Size = UDim2.new(0, 42, 0, 16)
-hueValueLabel.Position = UDim2.new(1, -50, 0, 28)
+hueValueLabel.Position = UDim2.new(1, -50, 0, 24)
 hueValueLabel.BackgroundTransparency = 1
 hueValueLabel.Text = "0°"
 hueValueLabel.TextColor3 = Theme.TextMuted
@@ -787,7 +811,7 @@ hueValueLabel.Parent = colorPickerFrame
 
 local hueTrack = Instance.new("Frame")
 hueTrack.Size = UDim2.new(1, -74, 0, 10)
-hueTrack.Position = UDim2.new(0, 64, 0, 31)
+hueTrack.Position = UDim2.new(0, 64, 0, 27)
 hueTrack.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 hueTrack.BorderSizePixel = 0
 hueTrack.Active = true
@@ -819,7 +843,7 @@ mkStroke(hueKnob, Color3.fromRGB(20, 20, 24))
 
 local satLabel = Instance.new("TextLabel")
 satLabel.Size = UDim2.new(0, 56, 0, 16)
-satLabel.Position = UDim2.new(0, 8, 0, 54)
+satLabel.Position = UDim2.new(0, 8, 0, 46)
 satLabel.BackgroundTransparency = 1
 satLabel.Text = "Saturation"
 satLabel.TextColor3 = Theme.TextSecondary
@@ -831,7 +855,7 @@ satLabel.Parent = colorPickerFrame
 
 local satValueLabel = Instance.new("TextLabel")
 satValueLabel.Size = UDim2.new(0, 42, 0, 16)
-satValueLabel.Position = UDim2.new(1, -50, 0, 54)
+satValueLabel.Position = UDim2.new(1, -50, 0, 46)
 satValueLabel.BackgroundTransparency = 1
 satValueLabel.Text = "100%"
 satValueLabel.TextColor3 = Theme.TextMuted
@@ -843,7 +867,7 @@ satValueLabel.Parent = colorPickerFrame
 
 local satTrack = Instance.new("Frame")
 satTrack.Size = UDim2.new(1, -74, 0, 10)
-satTrack.Position = UDim2.new(0, 64, 0, 57)
+satTrack.Position = UDim2.new(0, 64, 0, 49)
 satTrack.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 satTrack.BorderSizePixel = 0
 satTrack.Active = true
@@ -865,7 +889,7 @@ satKnob.Parent = satTrack
 mkCorner(satKnob, 6)
 mkStroke(satKnob, Color3.fromRGB(20, 20, 24))
 
-local opacitySlider = createSimpleSlider(settingsPanel, 214, "Opacity", 0, 100)
+local opacitySlider = createSimpleSlider(colorPickerFrame, 68, "Opacity", 0, 100)
 opacitySlider.fill.BackgroundColor3 = Color3.fromRGB(120, 120, 170)
 
 local settingsBackBtn = Instance.new("TextButton")
