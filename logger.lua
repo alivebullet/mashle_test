@@ -2231,7 +2231,6 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 			cb.BorderSizePixel = 0
 			cb.AutoButtonColor = false
 			mkC(cb, 4)
-			cb.MouseButton1Click:Connect(function() gui.Enabled = false end)
 
 			local sc = Instance.new("ScrollingFrame", win)
 			sc.Name = "Scroll"
@@ -2263,42 +2262,76 @@ openPausedRemotesBtn.MouseButton1Click:Connect(function()
 			mkC(rg, 3)
 
 			local UIS = game:GetService("UserInputService")
+			local RS = game:GetService("RunService")
 			win.Active = true
 
-			local dragActive, dragOrigin, dragStartP = false, nil, nil
-			local resizeActive, resizeOrigin, resizeStartSz = false, nil, nil
+			local dragging, resizing = false, false
+			local dragOffsetX, dragOffsetY = 0, 0
+			local resizeStartMouse, resizeStartSize = nil, nil
+			local endedConn, hbConn, enabledConn, ancestryConn
+
+			local function disconnectAll()
+				if endedConn then endedConn:Disconnect(); endedConn = nil end
+				if hbConn then hbConn:Disconnect(); hbConn = nil end
+				if enabledConn then enabledConn:Disconnect(); enabledConn = nil end
+				if ancestryConn then ancestryConn:Disconnect(); ancestryConn = nil end
+			end
+
+			cb.MouseButton1Click:Connect(function()
+				dragging = false
+				resizing = false
+				disconnectAll()
+				gui.Enabled = false
+			end)
 
 			tb.InputBegan:Connect(function(i)
-				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-					dragActive = true; dragOrigin = i.Position; dragStartP = win.Position
-				end
-			end)
-			tb.InputEnded:Connect(function(i)
-				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-					dragActive = false
+				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					local mp = UIS:GetMouseLocation()
+					local wp = win.AbsolutePosition
+					dragOffsetX = mp.X - wp.X
+					dragOffsetY = mp.Y - wp.Y
+					dragging = true
 				end
 			end)
 
 			rg.InputBegan:Connect(function(i)
-				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-					resizeActive = true; resizeOrigin = i.Position; resizeStartSz = win.AbsoluteSize
-				end
-			end)
-			rg.InputEnded:Connect(function(i)
-				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-					resizeActive = false
+				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					resizeStartMouse = UIS:GetMouseLocation()
+					resizeStartSize = win.AbsoluteSize
+					resizing = true
 				end
 			end)
 
-			UIS.InputChanged:Connect(function(i)
-				if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then return end
-				if dragActive and dragOrigin and dragStartP then
-					local d = i.Position - dragOrigin
-					win.Position = UDim2.new(dragStartP.X.Scale, dragStartP.X.Offset + d.X, dragStartP.Y.Scale, dragStartP.Y.Offset + d.Y)
+			endedConn = UIS.InputEnded:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					dragging = false
+					resizing = false
 				end
-				if resizeActive and resizeOrigin and resizeStartSz then
-					local d = i.Position - resizeOrigin
-					win.Size = UDim2.new(0, math.clamp(resizeStartSz.X + d.X, 360, 1200), 0, math.clamp(resizeStartSz.Y + d.Y, 260, 900))
+			end)
+
+			hbConn = RS.Heartbeat:Connect(function()
+				if dragging then
+					local mp = UIS:GetMouseLocation()
+					win.Position = UDim2.new(0, mp.X - dragOffsetX, 0, mp.Y - dragOffsetY)
+				elseif resizing and resizeStartMouse and resizeStartSize then
+					local mp = UIS:GetMouseLocation()
+					local dx = mp.X - resizeStartMouse.X
+					local dy = mp.Y - resizeStartMouse.Y
+					win.Size = UDim2.new(0, math.clamp(resizeStartSize.X + dx, 360, 1200), 0, math.clamp(resizeStartSize.Y + dy, 260, 900))
+				end
+			end)
+
+			enabledConn = gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+				if not gui.Enabled then
+					dragging = false
+					resizing = false
+					disconnectAll()
+				end
+			end)
+
+			ancestryConn = gui.AncestryChanged:Connect(function(_, parent)
+				if not parent then
+					disconnectAll()
 				end
 			end)
 		end
@@ -2454,7 +2487,6 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 			cb.BorderSizePixel = 0
 			cb.AutoButtonColor = false
 			mkC(cb, 4)
-			cb.MouseButton1Click:Connect(function() gui.Enabled = false end)
 
 			local sc = Instance.new("ScrollingFrame", win)
 			sc.Name = "Scroll"
@@ -2487,40 +2519,74 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 
 			win.Active = true
 
-			local dragActive, dragOrigin, dragStartP = false, nil, nil
-			local resizeActive, resizeOrigin, resizeStartSz = false, nil, nil
+			local RS = game:GetService("RunService")
+			local dragging, resizing = false, false
+			local dragOffsetX, dragOffsetY = 0, 0
+			local resizeStartMouse, resizeStartSize = nil, nil
+			local endedConn, hbConn, enabledConn, ancestryConn
+
+			local function disconnectAll()
+				if endedConn then endedConn:Disconnect(); endedConn = nil end
+				if hbConn then hbConn:Disconnect(); hbConn = nil end
+				if enabledConn then enabledConn:Disconnect(); enabledConn = nil end
+				if ancestryConn then ancestryConn:Disconnect(); ancestryConn = nil end
+			end
+
+			cb.MouseButton1Click:Connect(function()
+				dragging = false
+				resizing = false
+				disconnectAll()
+				gui.Enabled = false
+			end)
 
 			tb.InputBegan:Connect(function(i)
-				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-					dragActive = true; dragOrigin = i.Position; dragStartP = win.Position
-				end
-			end)
-			tb.InputEnded:Connect(function(i)
-				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-					dragActive = false
+				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					local mp = UIS:GetMouseLocation()
+					local wp = win.AbsolutePosition
+					dragOffsetX = mp.X - wp.X
+					dragOffsetY = mp.Y - wp.Y
+					dragging = true
 				end
 			end)
 
 			rg.InputBegan:Connect(function(i)
-				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-					resizeActive = true; resizeOrigin = i.Position; resizeStartSz = win.AbsoluteSize
-				end
-			end)
-			rg.InputEnded:Connect(function(i)
-				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-					resizeActive = false
+				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					resizeStartMouse = UIS:GetMouseLocation()
+					resizeStartSize = win.AbsoluteSize
+					resizing = true
 				end
 			end)
 
-			UIS.InputChanged:Connect(function(i)
-				if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then return end
-				if dragActive and dragOrigin and dragStartP then
-					local d = i.Position - dragOrigin
-					win.Position = UDim2.new(dragStartP.X.Scale, dragStartP.X.Offset + d.X, dragStartP.Y.Scale, dragStartP.Y.Offset + d.Y)
+			endedConn = UIS.InputEnded:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					dragging = false
+					resizing = false
 				end
-				if resizeActive and resizeOrigin and resizeStartSz then
-					local d = i.Position - resizeOrigin
-					win.Size = UDim2.new(0, math.clamp(resizeStartSz.X + d.X, 360, 1200), 0, math.clamp(resizeStartSz.Y + d.Y, 260, 900))
+			end)
+
+			hbConn = RS.Heartbeat:Connect(function()
+				if dragging then
+					local mp = UIS:GetMouseLocation()
+					win.Position = UDim2.new(0, mp.X - dragOffsetX, 0, mp.Y - dragOffsetY)
+				elseif resizing and resizeStartMouse and resizeStartSize then
+					local mp = UIS:GetMouseLocation()
+					local dx = mp.X - resizeStartMouse.X
+					local dy = mp.Y - resizeStartMouse.Y
+					win.Size = UDim2.new(0, math.clamp(resizeStartSize.X + dx, 360, 1200), 0, math.clamp(resizeStartSize.Y + dy, 260, 900))
+				end
+			end)
+
+			enabledConn = gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+				if not gui.Enabled then
+					dragging = false
+					resizing = false
+					disconnectAll()
+				end
+			end)
+
+			ancestryConn = gui.AncestryChanged:Connect(function(_, parent)
+				if not parent then
+					disconnectAll()
 				end
 			end)
 		end
