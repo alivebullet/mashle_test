@@ -729,24 +729,10 @@ colorHexLabel.Font = Enum.Font.Gotham
 colorHexLabel.TextSize = 10
 colorHexLabel.Parent = settingsPanel
 
-local colorPickerToggleBtn = Instance.new("TextButton")
-colorPickerToggleBtn.Size = UDim2.new(0, 132, 0, 22)
-colorPickerToggleBtn.Position = UDim2.new(0, 84, 0, 177)
-colorPickerToggleBtn.BackgroundColor3 = Theme.ButtonDefault
-colorPickerToggleBtn.Text = "Pick Color"
-colorPickerToggleBtn.TextColor3 = Theme.TextPrimary
-colorPickerToggleBtn.Font = Enum.Font.Gotham
-colorPickerToggleBtn.TextSize = 10
-colorPickerToggleBtn.BorderSizePixel = 0
-colorPickerToggleBtn.Parent = settingsPanel
-mkCorner(colorPickerToggleBtn, 4)
-
-local colorPreviewSwatch = Instance.new("TextButton")
+local colorPreviewSwatch = Instance.new("Frame")
 colorPreviewSwatch.Size = UDim2.new(0, 20, 0, 20)
 colorPreviewSwatch.Position = UDim2.new(0, 220, 0, 178)
 colorPreviewSwatch.BackgroundColor3 = Color3.fromRGB(75, 130, 255)
-colorPreviewSwatch.Text = ""
-colorPreviewSwatch.AutoButtonColor = false
 colorPreviewSwatch.BorderSizePixel = 0
 colorPreviewSwatch.Parent = settingsPanel
 mkCorner(colorPreviewSwatch, 4)
@@ -757,7 +743,7 @@ colorPickerFrame.Size = UDim2.new(0, 220, 0, 128)
 colorPickerFrame.Position = UDim2.new(1, -230, 0, 116)
 colorPickerFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
 colorPickerFrame.BorderSizePixel = 0
-colorPickerFrame.Visible = false
+colorPickerFrame.Visible = true
 colorPickerFrame.ZIndex = 8
 colorPickerFrame.Parent = settingsPanel
 mkCorner(colorPickerFrame, 6)
@@ -767,7 +753,7 @@ local colorPickerTitle = Instance.new("TextLabel")
 colorPickerTitle.Size = UDim2.new(1, -16, 0, 18)
 colorPickerTitle.Position = UDim2.new(0, 8, 0, 5)
 colorPickerTitle.BackgroundTransparency = 1
-colorPickerTitle.Text = "Color Picker"
+colorPickerTitle.Text = "Color Controls"
 colorPickerTitle.TextColor3 = Theme.TextPrimary
 colorPickerTitle.TextXAlignment = Enum.TextXAlignment.Left
 colorPickerTitle.Font = Enum.Font.GothamBold
@@ -1171,8 +1157,6 @@ local function setTab(tab)
 	activeTab = tab
 	if tab == "animations" then
 		previousTab = "animations"
-		colorPickerFrame.Visible = false
-		colorPickerToggleBtn.Text = "Pick Color"
 		animContent.Visible    = true
 		remoteContent.Visible  = false
 		settingsContent.Visible = false
@@ -1193,8 +1177,6 @@ local function setTab(tab)
 		pauseRemotesBtn.Visible = false
 	elseif tab == "remotes" then
 		previousTab = "remotes"
-		colorPickerFrame.Visible = false
-		colorPickerToggleBtn.Text = "Pick Color"
 		animContent.Visible    = false
 		remoteContent.Visible  = true
 		settingsContent.Visible = false
@@ -1332,18 +1314,6 @@ opacitySlider.track.InputBegan:Connect(function(i)
 			updateRangeVisualizer()
 		end, i.Position)
 	end
-end)
-
-colorPickerToggleBtn.MouseButton1Click:Connect(function()
-	local open = not colorPickerFrame.Visible
-	colorPickerFrame.Visible = open
-	colorPickerToggleBtn.Text = open and "Close Picker" or "Pick Color"
-end)
-
-colorPreviewSwatch.MouseButton1Click:Connect(function()
-	local open = not colorPickerFrame.Visible
-	colorPickerFrame.Visible = open
-	colorPickerToggleBtn.Text = open and "Close Picker" or "Pick Color"
 end)
 
 UserInputService.InputChanged:Connect(function(i)
