@@ -1073,8 +1073,7 @@ local remoteSearchText    = ""
 local pausedIndividualRemotes = {} -- Tracks specifically paused remotes
 local pausedRemoteArchive = {} -- Keeps a restorable snapshot of paused remotes
 local pausedAnimationArchive = {}
-local pausedIndividualAnimations = {} -- animId -> true when individually paused
-local pausedIndividualAnimDatas  = {} -- animId -> data snapshot
+local pausedIndividualAnimations = {} -- animId -> data when individually paused
 local animEntries = {}
 local detectionRadius     = DEFAULT_DETECTION_RADIUS
 local previousTab         = "animations"
@@ -1485,7 +1484,7 @@ animDetailText.RichText = true
 animDetailText.Parent             = animDetailScroll
 
 local copyIdBtn = Instance.new("TextButton")
-copyIdBtn.Size             = UDim2.new(1, -16, 0, 28)
+copyIdBtn.Size             = UDim2.new(0.5, -12, 0, 28)
 copyIdBtn.Position         = UDim2.new(0, 8, 1, -36)
 copyIdBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 120)
 copyIdBtn.Text             = "Print ID to Console"
@@ -1494,19 +1493,19 @@ copyIdBtn.Font             = Enum.Font.Gotham; copyIdBtn.TextSize = 11
 copyIdBtn.BorderSizePixel  = 0; copyIdBtn.Parent = detailFrame
 mkCorner(copyIdBtn, 4)
 
-local animPauseBtn = Instance.new("TextButton")
-animPauseBtn.Size             = UDim2.new(1, -16, 0, 26)
-animPauseBtn.Position         = UDim2.new(0, 8, 1, -68)
-animPauseBtn.BackgroundColor3 = Color3.fromRGB(80, 60, 110)
-animPauseBtn.Text             = "⏸ Pause This Animation"
-animPauseBtn.TextColor3       = Theme.TextPrimary
-animPauseBtn.Font             = Enum.Font.GothamBold; animPauseBtn.TextSize = 11
-animPauseBtn.BorderSizePixel  = 0; animPauseBtn.Parent = detailFrame
-mkCorner(animPauseBtn, 4)
+local ignoreBtn = Instance.new("TextButton")
+ignoreBtn.Size             = UDim2.new(0.5, -12, 0, 28)
+ignoreBtn.Position         = UDim2.new(0.5, 4, 1, -36)
+ignoreBtn.BackgroundColor3 = Color3.fromRGB(80, 60, 110)
+ignoreBtn.Text             = "Pause This Anim"
+ignoreBtn.TextColor3       = Theme.TextPrimary
+ignoreBtn.Font             = Enum.Font.GothamBold; ignoreBtn.TextSize = 11
+ignoreBtn.BorderSizePixel  = 0; ignoreBtn.Parent = detailFrame
+mkCorner(ignoreBtn, 4)
 
 local refreshAnimBtn = Instance.new("TextButton")
 refreshAnimBtn.Size = UDim2.new(1, -16, 0, 22)
-refreshAnimBtn.Position = UDim2.new(0, 8, 1, -96)
+refreshAnimBtn.Position = UDim2.new(0, 8, 1, -64)
 refreshAnimBtn.BackgroundColor3 = Theme.ButtonDefault
 refreshAnimBtn.Text = "🔄 Refresh"
 refreshAnimBtn.TextColor3 = Theme.TextPrimary
@@ -1945,29 +1944,25 @@ local function showAnimDetailView(data)
 	detailFrame.Visible  = true
 	local idNum = extractIdNumber(data and data.animId)
 	if idNum and pausedIndividualAnimations[idNum] then
-		animPauseBtn.Text = "▶ Resume This Animation"
-		animPauseBtn.BackgroundColor3 = Color3.fromRGB(42, 112, 72)
+		ignoreBtn.Text = "Resume Anim"
+		ignoreBtn.BackgroundColor3 = Color3.fromRGB(42, 112, 72)
 	else
-		animPauseBtn.Text = "⏸ Pause This Animation"
-		animPauseBtn.BackgroundColor3 = Color3.fromRGB(80, 60, 110)
+		ignoreBtn.Text = "Pause This Anim"
+		ignoreBtn.BackgroundColor3 = Color3.fromRGB(80, 60, 110)
 	end
 	refreshAnimDetail()
 end
 
-animPauseBtn.MouseButton1Click:Connect(function()
+ignoreBtn.MouseButton1Click:Connect(function()
 	if not currentAnimDetail then return end
 	local idNum = extractIdNumber(currentAnimDetail.animId)
 	if not idNum then return end
 	if pausedIndividualAnimations[idNum] then
-		-- Unpause
 		pausedIndividualAnimations[idNum] = nil
-		pausedIndividualAnimDatas[idNum]  = nil
-		animPauseBtn.Text = "⏸ Pause This Animation"
-		animPauseBtn.BackgroundColor3 = Color3.fromRGB(80, 60, 110)
+		ignoreBtn.Text = "Pause This Anim"
+		ignoreBtn.BackgroundColor3 = Color3.fromRGB(80, 60, 110)
 	else
-		-- Pause: store snapshot, remove matching entry from main list
-		pausedIndividualAnimations[idNum] = true
-		pausedIndividualAnimDatas[idNum]  = currentAnimDetail
+		pausedIndividualAnimations[idNum] = currentAnimDetail
 		for i = #animEntries, 1, -1 do
 			local e = animEntries[i]
 			if extractIdNumber(e.data and e.data.animId) == idNum then
@@ -1975,8 +1970,8 @@ animPauseBtn.MouseButton1Click:Connect(function()
 				table.remove(animEntries, i)
 			end
 		end
-		animPauseBtn.Text = "▶ Resume This Animation"
-		animPauseBtn.BackgroundColor3 = Color3.fromRGB(42, 112, 72)
+		ignoreBtn.Text = "Resume Anim"
+		ignoreBtn.BackgroundColor3 = Color3.fromRGB(42, 112, 72)
 		detailFrame.Visible = false
 	end
 end)
@@ -2343,10 +2338,9 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 		local T = args[2]
 		local mkC = args[3]
 		local mkS = args[4]
-		local pIAD = args[5]  -- pausedIndividualAnimDatas: idNum -> data
-		local pIA  = args[6]  -- pausedIndividualAnimations: idNum -> bool
-		local Plrs = args[7]
-		local showDetail = args[8]  -- showAnimDetailView function
+		local pIA = args[5]   -- pausedIndividualAnimations: idNum -> data
+		local Plrs = args[6]
+		local showDetail = args[7]  -- showAnimDetailView function
 
 		if not pGui:FindFirstChild("PausedAnimationsPopup") then
 			local gui = Instance.new("ScreenGui")
@@ -2428,7 +2422,7 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 		end
 
 		local count = 0
-		for idNum, data in pairs(pIAD) do
+		for idNum, data in pairs(pIA) do
 			count += 1
 			local player = data.player or Plrs:GetPlayerFromCharacter(data.character)
 			local dn = (player and (player.DisplayName .. " (@" .. player.Name .. ")")) or (data.character and data.character.Name) or "Unknown"
@@ -2496,11 +2490,10 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 			local capturedData = data
 			unpBtn.MouseButton1Click:Connect(function()
 				pIA[capturedId] = nil
-				pIAD[capturedId] = nil
 				row:Destroy()
 				local tl2 = win:FindFirstChild("TitleBar") and win.TitleBar:FindFirstChild("TitleLbl")
 				local remaining = 0
-				for _ in pairs(pIAD) do remaining += 1 end
+				for _ in pairs(pIA) do remaining += 1 end
 				if tl2 then tl2.Text = ("Paused Animations (%d)"):format(remaining) end
 			end)
 			clickArea.MouseButton1Click:Connect(function()
@@ -2513,7 +2506,7 @@ openPausedAnimationsBtn.MouseButton1Click:Connect(function()
 		local tl2 = win:FindFirstChild("TitleBar") and win.TitleBar:FindFirstChild("TitleLbl")
 		if tl2 then tl2.Text = ("Paused Animations (%d)"):format(count) end
 		popG.Enabled = true
-	]]), {playerGui, Theme, mkCorner, mkStroke, pausedIndividualAnimDatas, pausedIndividualAnimations, Players, showAnimDetailView})
+	]]), {playerGui, Theme, mkCorner, mkStroke, pausedIndividualAnimations, Players, showAnimDetailView})
 end)
 
 exportRemotesBtn.MouseButton1Click:Connect(function()
