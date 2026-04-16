@@ -753,8 +753,8 @@ mkCorner(colorPreviewSwatch, 4)
 mkStroke(colorPreviewSwatch, Color3.fromRGB(85, 85, 105))
 
 local colorPickerFrame = Instance.new("Frame")
-colorPickerFrame.Size = UDim2.new(0, 220, 0, 126)
-colorPickerFrame.Position = UDim2.new(1, -230, 0, 112)
+colorPickerFrame.Size = UDim2.new(0, 220, 0, 190)
+colorPickerFrame.Position = UDim2.new(1, -230, 0, 54)
 colorPickerFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
 colorPickerFrame.BorderSizePixel = 0
 colorPickerFrame.Visible = false
@@ -775,84 +775,75 @@ colorPickerTitle.TextSize = 10
 colorPickerTitle.ZIndex = 9
 colorPickerTitle.Parent = colorPickerFrame
 
-local colorSV = Instance.new("Frame")
-colorSV.Size = UDim2.new(1, -16, 0, 70)
-colorSV.Position = UDim2.new(0, 8, 0, 24)
-colorSV.BorderSizePixel = 0
-colorSV.Active = true
-colorSV.ZIndex = 9
-colorSV.Parent = colorPickerFrame
-mkCorner(colorSV, 4)
+local wheelContainer = Instance.new("Frame")
+wheelContainer.Size = UDim2.new(0, 154, 0, 154)
+wheelContainer.Position = UDim2.new(0.5, -77, 0, 26)
+wheelContainer.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
+wheelContainer.BorderSizePixel = 0
+wheelContainer.ZIndex = 9
+wheelContainer.Parent = colorPickerFrame
+mkCorner(wheelContainer, 77)
+mkStroke(wheelContainer, Color3.fromRGB(58, 58, 74))
 
-local colorSVWhite = Instance.new("Frame")
-colorSVWhite.Size = UDim2.new(1, 0, 1, 0)
-colorSVWhite.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-colorSVWhite.BorderSizePixel = 0
-colorSVWhite.ZIndex = 10
-colorSVWhite.Parent = colorSV
-local svWhiteGradient = Instance.new("UIGradient")
-svWhiteGradient.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.new(1, 1, 1))
-svWhiteGradient.Transparency = NumberSequence.new({
-	NumberSequenceKeypoint.new(0, 0),
-	NumberSequenceKeypoint.new(1, 1),
-})
-svWhiteGradient.Parent = colorSVWhite
+local colorWheel = Instance.new("Frame")
+colorWheel.Size = UDim2.new(0, 146, 0, 146)
+colorWheel.Position = UDim2.new(0.5, -73, 0.5, -73)
+colorWheel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+colorWheel.BorderSizePixel = 0
+colorWheel.ZIndex = 10
+colorWheel.ClipsDescendants = true
+colorWheel.Parent = wheelContainer
+mkCorner(colorWheel, 73)
 
-local colorSVBlack = Instance.new("Frame")
-colorSVBlack.Size = UDim2.new(1, 0, 1, 0)
-colorSVBlack.BackgroundColor3 = Color3.new(0, 0, 0)
-colorSVBlack.BorderSizePixel = 0
-colorSVBlack.ZIndex = 11
-colorSVBlack.Parent = colorSV
-local svBlackGradient = Instance.new("UIGradient")
-svBlackGradient.Color = ColorSequence.new(Color3.new(0, 0, 0), Color3.new(0, 0, 0))
-svBlackGradient.Transparency = NumberSequence.new({
-	NumberSequenceKeypoint.new(0, 1),
-	NumberSequenceKeypoint.new(1, 0),
-})
-svBlackGradient.Rotation = 90
-svBlackGradient.Parent = colorSVBlack
+local colorWheelRadius = 68
+local wheelDotSize = 7
+for satStep = 1, 10 do
+	local sat = satStep / 10
+	local radius = sat * colorWheelRadius
+	local segments = math.max(16, math.floor(18 + sat * 46))
+	for seg = 1, segments do
+		local hue = (seg - 1) / segments
+		local angle = hue * (math.pi * 2)
+		local px = 73 + math.cos(angle) * radius
+		local py = 73 - math.sin(angle) * radius
 
-local colorSVCursor = Instance.new("Frame")
-colorSVCursor.Size = UDim2.new(0, 10, 0, 10)
-colorSVCursor.Position = UDim2.new(1, -5, 0, -5)
-colorSVCursor.BackgroundColor3 = Color3.fromRGB(230, 230, 240)
-colorSVCursor.BorderSizePixel = 0
-colorSVCursor.ZIndex = 12
-colorSVCursor.Parent = colorSV
-mkCorner(colorSVCursor, 5)
-mkStroke(colorSVCursor, Color3.fromRGB(20, 20, 24))
+		local dot = Instance.new("Frame")
+		dot.Size = UDim2.new(0, wheelDotSize, 0, wheelDotSize)
+		dot.Position = UDim2.new(0, math.floor(px - wheelDotSize * 0.5), 0, math.floor(py - wheelDotSize * 0.5))
+		dot.BackgroundColor3 = Color3.fromHSV(hue, sat, 1)
+		dot.BorderSizePixel = 0
+		dot.ZIndex = 11
+		dot.Parent = colorWheel
+		mkCorner(dot, 4)
+	end
+end
 
-local colorHueTrack = Instance.new("Frame")
-colorHueTrack.Size = UDim2.new(1, -16, 0, 10)
-colorHueTrack.Position = UDim2.new(0, 8, 0, 102)
-colorHueTrack.BorderSizePixel = 0
-colorHueTrack.Active = true
-colorHueTrack.ZIndex = 9
-colorHueTrack.Parent = colorPickerFrame
-mkCorner(colorHueTrack, 5)
+local wheelCenterDot = Instance.new("Frame")
+wheelCenterDot.Size = UDim2.new(0, 10, 0, 10)
+wheelCenterDot.Position = UDim2.new(0.5, -5, 0.5, -5)
+wheelCenterDot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+wheelCenterDot.BorderSizePixel = 0
+wheelCenterDot.ZIndex = 11
+wheelCenterDot.Parent = colorWheel
+mkCorner(wheelCenterDot, 5)
 
-local hueGradient = Instance.new("UIGradient")
-hueGradient.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 0)),
-	ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 255, 0)),
-	ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
-	ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 255, 255)),
-	ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
-	ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
-	ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 0)),
-})
-hueGradient.Parent = colorHueTrack
+local colorWheelInput = Instance.new("TextButton")
+colorWheelInput.Size = UDim2.new(1, 0, 1, 0)
+colorWheelInput.BackgroundTransparency = 1
+colorWheelInput.Text = ""
+colorWheelInput.AutoButtonColor = false
+colorWheelInput.ZIndex = 12
+colorWheelInput.Parent = colorWheel
 
-local colorHueKnob = Instance.new("Frame")
-colorHueKnob.Size = UDim2.new(0, 12, 0, 12)
-colorHueKnob.Position = UDim2.new(1, -6, 0.5, -6)
-colorHueKnob.BackgroundColor3 = Color3.fromRGB(230, 230, 240)
-colorHueKnob.BorderSizePixel = 0
-colorHueKnob.ZIndex = 10
-colorHueKnob.Parent = colorHueTrack
-mkCorner(colorHueKnob, 6)
-mkStroke(colorHueKnob, Color3.fromRGB(20, 20, 24))
+local colorWheelCursor = Instance.new("Frame")
+colorWheelCursor.Size = UDim2.new(0, 12, 0, 12)
+colorWheelCursor.Position = UDim2.new(1, -6, 0.5, -6)
+colorWheelCursor.BackgroundColor3 = Color3.fromRGB(230, 230, 240)
+colorWheelCursor.BorderSizePixel = 0
+colorWheelCursor.ZIndex = 13
+colorWheelCursor.Parent = colorWheel
+mkCorner(colorWheelCursor, 6)
+mkStroke(colorWheelCursor, Color3.fromRGB(20, 20, 24))
 
 local opacitySlider = createSimpleSlider(settingsPanel, 214, "Opacity", 0, 100)
 opacitySlider.fill.BackgroundColor3 = Color3.fromRGB(120, 120, 170)
@@ -1108,9 +1099,11 @@ local function updateColorPickerUI()
 	local color = Color3.fromRGB(rangeColorR, rangeColorG, rangeColorB)
 	colorPreviewSwatch.BackgroundColor3 = color
 	colorHexLabel.Text = ("#%02X%02X%02X"):format(rangeColorR, rangeColorG, rangeColorB)
-	colorSV.BackgroundColor3 = Color3.fromHSV(rangeHue, 1, 1)
-	colorSVCursor.Position = UDim2.new(rangeSat, -5, 1 - rangeVal, -5)
-	colorHueKnob.Position = UDim2.new(rangeHue, -6, 0.5, -6)
+	local angle = rangeHue * (math.pi * 2)
+	local radius = math.clamp(rangeSat, 0, 1) * colorWheelRadius
+	local cx = (colorWheel.AbsoluteSize.X * 0.5) + math.cos(angle) * radius
+	local cy = (colorWheel.AbsoluteSize.Y * 0.5) - math.sin(angle) * radius
+	colorWheelCursor.Position = UDim2.new(0, math.floor(cx - 6), 0, math.floor(cy - 6))
 end
 
 local function setRangeColorFromHSV(h, s, v)
@@ -1259,21 +1252,16 @@ local function beginSliderDrag(updateFn, inputPos)
 	updateFn(inputPos)
 end
 
-local function updateSVFromInput(inputPos)
-	local left = colorSV.AbsolutePosition.X
-	local top = colorSV.AbsolutePosition.Y
-	local width = math.max(1, colorSV.AbsoluteSize.X)
-	local height = math.max(1, colorSV.AbsoluteSize.Y)
-	local sat = math.clamp((inputPos.X - left) / width, 0, 1)
-	local val = 1 - math.clamp((inputPos.Y - top) / height, 0, 1)
-	setRangeColorFromHSV(rangeHue, sat, val)
-end
-
-local function updateHueFromInput(inputPos)
-	local left = colorHueTrack.AbsolutePosition.X
-	local width = math.max(1, colorHueTrack.AbsoluteSize.X)
-	local hue = math.clamp((inputPos.X - left) / width, 0, 1)
-	setRangeColorFromHSV(hue, rangeSat, rangeVal)
+local function updateWheelFromInput(inputPos)
+	local centerX = colorWheel.AbsolutePosition.X + (colorWheel.AbsoluteSize.X * 0.5)
+	local centerY = colorWheel.AbsolutePosition.Y + (colorWheel.AbsoluteSize.Y * 0.5)
+	local dx = inputPos.X - centerX
+	local dy = inputPos.Y - centerY
+	local dist = math.sqrt(dx * dx + dy * dy)
+	local sat = math.clamp(dist / colorWheelRadius, 0, 1)
+	local ang = math.atan(-dy, dx)
+	local hue = (ang / (math.pi * 2)) % 1
+	setRangeColorFromHSV(hue, sat, 1)
 end
 
 rangeSliderTrack.InputBegan:Connect(function(i)
@@ -1314,12 +1302,8 @@ local function bindPickerDrag(guiObj, fn)
 	end)
 end
 
-bindPickerDrag(colorSV, updateSVFromInput)
-bindPickerDrag(colorSVWhite, updateSVFromInput)
-bindPickerDrag(colorSVBlack, updateSVFromInput)
-bindPickerDrag(colorSVCursor, updateSVFromInput)
-bindPickerDrag(colorHueTrack, updateHueFromInput)
-bindPickerDrag(colorHueKnob, updateHueFromInput)
+bindPickerDrag(colorWheelInput, updateWheelFromInput)
+bindPickerDrag(colorWheelCursor, updateWheelFromInput)
 
 UserInputService.InputChanged:Connect(function(i)
 	if not activeSliderUpdate then return end
