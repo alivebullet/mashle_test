@@ -1979,8 +1979,11 @@ local function onAnimationPlayed(humanoid, animationTrack)
 	local animName = (animationTrack.Name ~= "" and animationTrack.Name)
 		or (anim and anim.Name ~= "" and anim.Name) or "Unnamed"
 
-	local passes = strictMode and matchesAny(animName, COMBAT_KEYWORDS)
-		or shouldLogAnimation(animName, animId)
+	-- Strict mode limits logs to likely combat animations; normal mode logs everything in range.
+	local passes = true
+	if strictMode then
+		passes = matchesAny(animName, COMBAT_KEYWORDS)
+	end
 
 	if not passes then filteredCount += 1; updateStatus(); return end
 
