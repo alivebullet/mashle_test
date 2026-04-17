@@ -210,7 +210,7 @@ local probeBtn = Instance.new("TextButton")
 probeBtn.Size             = UDim2.new(0, 70, 0, 22)
 probeBtn.Position         = UDim2.new(0, 280, 0, 5)
 probeBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 80)
-probeBtn.Text             = "🔍 Probe"
+probeBtn.Text             = "Probe"
 probeBtn.TextColor3       = Theme.TextPrimary
 probeBtn.Font             = Enum.Font.Gotham
 probeBtn.TextSize         = 10
@@ -1584,7 +1584,7 @@ local spTitleLabel = Instance.new("TextLabel")
 spTitleLabel.Size               = UDim2.new(1, -100, 1, 0)
 spTitleLabel.Position           = UDim2.new(0, 12, 0, 0)
 spTitleLabel.BackgroundTransparency = 1
-spTitleLabel.Text               = "🔍  State Probe"
+spTitleLabel.Text               = "State Probe"
 spTitleLabel.TextColor3         = Color3.fromRGB(150, 220, 180)
 spTitleLabel.TextXAlignment     = Enum.TextXAlignment.Left
 spTitleLabel.Font               = Enum.Font.GothamBold; spTitleLabel.TextSize = 13
