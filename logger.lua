@@ -60,7 +60,7 @@ local function onStateProbeEvent(event)
 	entryLabel.TextSize = 10
 	entryLabel.Parent = stateProbeContainer
 	mkCorner(entryLabel, 4)
-	UIHelpers.mkStroke(entryLabel, Theme.StrokeColor, Color3.fromRGB(100, 150, 200), 1)
+	mkStroke(entryLabel, Color3.fromRGB(100, 150, 200), 1)
 end
 
 local watchLocalCharacterState = StateProbe.createWatcher(onStateProbeEvent)
