@@ -9,7 +9,7 @@ local RunService       = game:GetService("RunService")
 local DEFAULT_DETECTION_RADIUS = 100
 local MAX_DETECTION_RADIUS     = 200
 local MAX_LOG_ENTRIES       = 100
-local BUILD_TAG = "probe-chips-search-2026-04-17"
+local BUILD_TAG = "probe-chips-search-fix2-2026-04-17"
 
 local localPlayer = Players.LocalPlayer
 local playerGui   = localPlayer:WaitForChild("PlayerGui")
