@@ -207,13 +207,13 @@ pauseRemotesBtn.Parent           = titleBar
 mkCorner(pauseRemotesBtn, 4)
 
 local probeBtn = Instance.new("TextButton")
-probeBtn.Size             = UDim2.new(0, 60, 0, 22)
-probeBtn.Position         = UDim2.new(1, -285, 0, 5)
-probeBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 100)
+probeBtn.Size             = UDim2.new(0, 70, 0, 22)
+probeBtn.Position         = UDim2.new(0, 280, 0, 5)
+probeBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 80)
 probeBtn.Text             = "🔍 Probe"
 probeBtn.TextColor3       = Theme.TextPrimary
 probeBtn.Font             = Enum.Font.Gotham
-probeBtn.TextSize         = 9
+probeBtn.TextSize         = 10
 probeBtn.BorderSizePixel  = 0
 probeBtn.Parent           = titleBar
 mkCorner(probeBtn, 4)
@@ -1563,8 +1563,8 @@ rdResizeGrip.MouseLeave:Connect(function() rdResizeGrip.BackgroundTransparency =
 -- ========== STATE PROBE PANEL ==========
 local stateProbeFrame = Instance.new("Frame")
 stateProbeFrame.Name             = "StateProbeFrame"
-stateProbeFrame.Size             = UDim2.new(0, 400, 0, 480)
-stateProbeFrame.Position         = UDim2.new(0, 900, 0, 80)
+stateProbeFrame.Size             = UDim2.new(0, 420, 0, 480)
+stateProbeFrame.Position         = UDim2.new(0, 20, 0, 570)
 stateProbeFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 stateProbeFrame.BorderSizePixel  = 0
 stateProbeFrame.Visible          = false
