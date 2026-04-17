@@ -144,7 +144,7 @@ titleLabel.Parent             = titleBar
 
 local settingsBtn = Instance.new("TextButton")
 settingsBtn.Size             = UDim2.new(0, 24, 0, 22)
-settingsBtn.Position         = UDim2.new(1, -245, 0, 5)
+settingsBtn.Position         = UDim2.new(1, -95, 0, 5)
 settingsBtn.BackgroundColor3 = Theme.ButtonDefault
 settingsBtn.Text             = "⚙"
 settingsBtn.TextColor3       = Theme.TextPrimary
@@ -208,7 +208,7 @@ mkCorner(pauseRemotesBtn, 4)
 
 local probeBtn = Instance.new("TextButton")
 probeBtn.Size             = UDim2.new(0, 70, 0, 22)
-probeBtn.Position         = UDim2.new(0, 280, 0, 5)
+probeBtn.Position         = UDim2.new(1, -175, 0, 5)
 probeBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 80)
 probeBtn.Text             = "Probe"
 probeBtn.TextColor3       = Theme.TextPrimary
