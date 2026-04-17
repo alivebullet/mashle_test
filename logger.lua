@@ -1106,7 +1106,7 @@ local function updateStatus()
 end
 
 -- ========== TAB SWITCHING ==========
-local applyRemoteFilter
+local applyRemoteFilter = function() end
 local function setTab(tab)
 	activeTab = tab
 	if tab == "animations" then
@@ -1153,7 +1153,9 @@ local function setTab(tab)
 		clearBtn.Visible        = false
 		pauseAnimBtn.Visible    = false
 		pauseRemotesBtn.Visible = true
-		applyRemoteFilter()  -- reapply search filter when tab shown
+		if applyRemoteFilter then
+			applyRemoteFilter()  -- reapply search filter when tab shown
+		end
 	else
 		animContent.Visible     = false
 		remoteContent.Visible   = false
@@ -1206,7 +1208,9 @@ localPlayerFilterBtn.MouseButton1Click:Connect(function()
 	remoteFilterLocal = not remoteFilterLocal
 	localPlayerFilterBtn.Text = remoteFilterLocal and "Local" or "All"
 	localPlayerFilterBtn.BackgroundColor3 = remoteFilterLocal and Color3.fromRGB(60,100,60) or Theme.ButtonDefault
-	applyRemoteFilter()
+	if applyRemoteFilter then
+		applyRemoteFilter()
+	end
 end)
 
 local function updateSliderFromInputX(inputX)
