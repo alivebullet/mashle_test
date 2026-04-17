@@ -120,7 +120,7 @@ mkCorner(reopenCloseBtn, 6)
 -- ===== Main Frame =====
 local mainFrame = Instance.new("Frame")
 mainFrame.Name             = "MainFrame"
-mainFrame.Size             = UDim2.new(0, 450, 0, 360)
+mainFrame.Size             = UDim2.new(0, 560, 0, 360)
 mainFrame.Position         = UDim2.new(0, 20, 0, 80)
 mainFrame.BackgroundColor3 = Theme.Background
 mainFrame.BorderSizePixel  = 0
@@ -1595,7 +1595,7 @@ mkCorner(spTitleBar, 8)
 
 do
 	local spTitleLabel = Instance.new("TextLabel")
-	spTitleLabel.Size               = UDim2.new(1, -120, 1, 0)
+	spTitleLabel.Size               = UDim2.new(1, -136, 1, 0)
 	spTitleLabel.Position           = UDim2.new(0, 12, 0, 0)
 	spTitleLabel.BackgroundTransparency = 1
 	spTitleLabel.Text               = "State Probe"
@@ -1607,7 +1607,7 @@ do
 
 	local spClearBtn = Instance.new("TextButton")
 	spClearBtn.Size             = UDim2.new(0, 40, 0, 22)
-	spClearBtn.Position         = UDim2.new(1, -74, 0, 5)
+	spClearBtn.Position         = UDim2.new(1, -86, 0, 5)
 	spClearBtn.BackgroundColor3 = Color3.fromRGB(80, 100, 60)
 	spClearBtn.Text             = "Clear"; spClearBtn.TextColor3 = Theme.TextPrimary
 	spClearBtn.Font             = Enum.Font.GothamBold; spClearBtn.TextSize = 10
@@ -1709,8 +1709,12 @@ local function bindDrag(bar, frame)
 	end
 end
 
-local function bindResize(grip, frame)
+local function bindResize(grip, frame, minWidth, minHeight, maxWidth, maxHeight)
 	local active, origin, startSz = false, nil, nil
+	minWidth = minWidth or 320
+	minHeight = minHeight or 240
+	maxWidth = maxWidth or 1200
+	maxHeight = maxHeight or 900
 	grip.InputBegan:Connect(function(i)
 		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
 			active = true; origin = i.Position; startSz = frame.AbsoluteSize
@@ -1724,8 +1728,8 @@ local function bindResize(grip, frame)
 	return function(inputPos)
 		if active and origin and startSz then
 			local d = inputPos - origin
-			frame.Size = UDim2.new(0, math.clamp(startSz.X+d.X, 520, 1200),
-				0, math.clamp(startSz.Y+d.Y, 360, 900))
+			frame.Size = UDim2.new(0, math.clamp(startSz.X+d.X, minWidth, maxWidth),
+				0, math.clamp(startSz.Y+d.Y, minHeight, maxHeight))
 		end
 	end
 end
@@ -1736,10 +1740,10 @@ do
 	local dragRemoteDetailFrame = bindDrag(rdTitleBar, remDetailFrame)
 	local dragStateProbeFrame = bindDrag(spTitleBar, stateProbeFrame)
 
-	local resizeMainFrame = bindResize(resizeGrip, mainFrame)
-	local resizeDetailFrame = bindResize(animDetailResizeGrip, detailFrame)
-	local resizeRemoteDetailFrame = bindResize(rdResizeGrip, remDetailFrame)
-	local resizeStateProbeFrame = bindResize(spResizeGrip, stateProbeFrame)
+	local resizeMainFrame = bindResize(resizeGrip, mainFrame, 560, 360)
+	local resizeDetailFrame = bindResize(animDetailResizeGrip, detailFrame, 360, 420)
+	local resizeRemoteDetailFrame = bindResize(rdResizeGrip, remDetailFrame, 390, 480)
+	local resizeStateProbeFrame = bindResize(spResizeGrip, stateProbeFrame, 420, 480)
 
 	UserInputService.InputChanged:Connect(function(input)
 		if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
