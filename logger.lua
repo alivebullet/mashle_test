@@ -32,6 +32,11 @@ local deepSerializeArg = RemoteHelpers.deepSerializeArg
 local serializeArgs = RemoteHelpers.serializeArgs
 local buildCode = RemoteHelpers.buildCode
 local tryClipboard = RemoteHelpers.tryClipboard
+local mkCorner = UIHelpers.mkCorner
+local function mkStroke(parent, color, thick)
+	UIHelpers.mkStroke(parent, Theme.StrokeColor, color, thick)
+end
+
 -- State probe UI storage
 local stateProbeEntries = {}  -- Keyed by "path :: fieldName"
 local stateProbeContainer
@@ -64,11 +69,6 @@ local function onStateProbeEvent(event)
 end
 
 local watchLocalCharacterState = StateProbe.createWatcher(onStateProbeEvent)
-
-local mkCorner = UIHelpers.mkCorner
-local function mkStroke(parent, color, thick)
-	UIHelpers.mkStroke(parent, Theme.StrokeColor, color, thick)
-end
 
 -- ========== CLEANUP OLD UI ==========
 if playerGui:FindFirstChild("AnimationDetectorUI") then
@@ -218,7 +218,10 @@ probeBtn.BorderSizePixel  = 0
 probeBtn.Parent           = titleBar
 mkCorner(probeBtn, 4)
 probeBtn.MouseButton1Click:Connect(function()
-	stateProbeFrame.Visible = not stateProbeFrame.Visible
+	local frame = screenGui:FindFirstChild("StateProbeFrame")
+	if frame then
+		frame.Visible = not frame.Visible
+	end
 end)
 
 local mainCloseBtn = Instance.new("TextButton")

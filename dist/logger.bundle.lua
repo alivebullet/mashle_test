@@ -321,9 +321,9 @@ local function stateProbeLog(root, eventName, instance, fieldName, value, callba
     local fieldStr = tostring(fieldName)
     local valueStr = formatStateProbeValue(value)
     local msg = ("[StateProbe][%s] %s :: %s = %s"):format(eventName, path, fieldStr, valueStr)
-    
+
     print(msg)
-    
+
     if callback then
         callback({
             eventName = eventName,
@@ -357,7 +357,17 @@ local function watchLocalCharacterState(character, state)
         return conn
     end
 
-    local function watchAttributes(instance, logExisting), state.callback)
+    local function watchAttributes(instance, logExisting)
+        if state.seenInstances[instance] then return end
+        state.seenInstances[instance] = true
+
+        if logExisting then
+            local attributes = safeGet(function()
+                return instance:GetAttributes()
+            end)
+            if type(attributes) == "table" then
+                for name, value in pairs(attributes) do
+                    stateProbeLog(character, "InitialAttribute", instance, name, value, state.callback)
                 end
             end
         end
@@ -398,17 +408,7 @@ local function watchLocalCharacterState(character, state)
 
     bind(character.DescendantAdded, function(instance)
         inspectInstance(instance)
-        stateProbeLog(character, "DescendantAdded", instance, "ClassName", instance.ClassName, state.callback
-    print(("[StateProbe] Hooked %s"):format(getInstanceProbePath(character, character)))
-
-    inspectInstance(character)
-    for _, instance in ipairs(character:GetDescendants()) do
-        inspectInstance(instance)
-    end
-
-    bind(character.DescendantAdded, function(instance)
-        inspectInstance(instance)
-        stateProbeLog(character, "DescendantAdded", instance, "ClassName", instance.ClassName)
+        stateProbeLog(character, "DescendantAdded", instance, "ClassName", instance.ClassName, state.callback)
     end)
 end
 
@@ -484,6 +484,11 @@ local deepSerializeArg = RemoteHelpers.deepSerializeArg
 local serializeArgs = RemoteHelpers.serializeArgs
 local buildCode = RemoteHelpers.buildCode
 local tryClipboard = RemoteHelpers.tryClipboard
+local mkCorner = UIHelpers.mkCorner
+local function mkStroke(parent, color, thick)
+	UIHelpers.mkStroke(parent, Theme.StrokeColor, color, thick)
+end
+
 -- State probe UI storage
 local stateProbeEntries = {}  -- Keyed by "path :: fieldName"
 local stateProbeContainer
@@ -516,11 +521,6 @@ local function onStateProbeEvent(event)
 end
 
 local watchLocalCharacterState = StateProbe.createWatcher(onStateProbeEvent)
-
-local mkCorner = UIHelpers.mkCorner
-local function mkStroke(parent, color, thick)
-	UIHelpers.mkStroke(parent, Theme.StrokeColor, color, thick)
-end
 
 -- ========== CLEANUP OLD UI ==========
 if playerGui:FindFirstChild("AnimationDetectorUI") then
@@ -670,7 +670,10 @@ probeBtn.BorderSizePixel  = 0
 probeBtn.Parent           = titleBar
 mkCorner(probeBtn, 4)
 probeBtn.MouseButton1Click:Connect(function()
-	stateProbeFrame.Visible = not stateProbeFrame.Visible
+	local frame = screenGui:FindFirstChild("StateProbeFrame")
+	if frame then
+		frame.Visible = not frame.Visible
+	end
 end)
 
 local mainCloseBtn = Instance.new("TextButton")
