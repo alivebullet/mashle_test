@@ -1649,8 +1649,8 @@ rdResizeGrip.MouseLeave:Connect(function() rdResizeGrip.BackgroundTransparency =
 -- ========== STATE PROBE PANEL ==========
 local stateProbeFrame = Instance.new("Frame")
 stateProbeFrame.Name             = "StateProbeFrame"
-stateProbeFrame.Size             = UDim2.new(0, 420, 0, 480)
-stateProbeFrame.Position         = UDim2.new(0, 20, 0, 570)
+stateProbeFrame.Size             = UDim2.new(0, 460, 0, 420)
+stateProbeFrame.Position         = UDim2.new(0, 20, 0, 240)
 stateProbeFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 stateProbeFrame.BorderSizePixel  = 0
 stateProbeFrame.Visible          = false
@@ -1668,7 +1668,7 @@ mkCorner(spTitleBar, 8)
 
 do
 	local spTitleLabel = Instance.new("TextLabel")
-	spTitleLabel.Size               = UDim2.new(1, -228, 1, 0)
+	spTitleLabel.Size               = UDim2.new(1, -236, 1, 0)
 	spTitleLabel.Position           = UDim2.new(0, 12, 0, 0)
 	spTitleLabel.BackgroundTransparency = 1
 	spTitleLabel.Text               = "State Probe"
@@ -1676,17 +1676,19 @@ do
 	spTitleLabel.TextXAlignment     = Enum.TextXAlignment.Left
 	spTitleLabel.Font               = Enum.Font.GothamBold; spTitleLabel.TextSize = 13
 	spTitleLabel.TextTruncate       = Enum.TextTruncate.AtEnd
+	spTitleLabel.ZIndex             = 1
 	spTitleLabel.Parent             = spTitleBar
 
 	local spFilterBtn = Instance.new("TextButton")
-	spFilterBtn.Size             = UDim2.new(0, 84, 0, 22)
-	spFilterBtn.Position         = UDim2.new(1, -174, 0, 5)
+	spFilterBtn.Size             = UDim2.new(0, 96, 0, 22)
+	spFilterBtn.Position         = UDim2.new(1, -188, 0, 5)
 	spFilterBtn.BackgroundColor3 = Color3.fromRGB(50, 80, 95)
 	spFilterBtn.Text             = getStateProbeFilterLabel()
 	spFilterBtn.TextColor3       = Theme.TextPrimary
 	spFilterBtn.Font             = Enum.Font.GothamBold; spFilterBtn.TextSize = 9
 	spFilterBtn.BorderSizePixel  = 0; spFilterBtn.Parent = spTitleBar
 	spFilterBtn.TextTruncate     = Enum.TextTruncate.AtEnd
+	spFilterBtn.ZIndex           = 3
 	mkCorner(spFilterBtn, 4)
 	spFilterBtn.MouseEnter:Connect(function() spFilterBtn.BackgroundColor3 = Color3.fromRGB(70, 100, 120) end)
 	spFilterBtn.MouseLeave:Connect(function() spFilterBtn.BackgroundColor3 = Color3.fromRGB(50, 80, 95) end)
@@ -1703,6 +1705,7 @@ do
 	spClearBtn.Text             = "Clear"; spClearBtn.TextColor3 = Theme.TextPrimary
 	spClearBtn.Font             = Enum.Font.GothamBold; spClearBtn.TextSize = 10
 	spClearBtn.BorderSizePixel  = 0; spClearBtn.Parent = spTitleBar
+	spClearBtn.ZIndex           = 3
 	mkCorner(spClearBtn, 4)
 	spClearBtn.MouseEnter:Connect(function() spClearBtn.BackgroundColor3 = Color3.fromRGB(120, 140, 80) end)
 	spClearBtn.MouseLeave:Connect(function() spClearBtn.BackgroundColor3 = Color3.fromRGB(80, 100, 60) end)
@@ -1714,13 +1717,14 @@ do
 	spCloseBtn.Text             = "X"; spCloseBtn.TextColor3 = Theme.TextPrimary
 	spCloseBtn.Font             = Enum.Font.GothamBold; spCloseBtn.TextSize = 12
 	spCloseBtn.BorderSizePixel  = 0; spCloseBtn.Parent = spTitleBar
+	spCloseBtn.ZIndex           = 3
 	mkCorner(spCloseBtn, 4)
 	spCloseBtn.MouseEnter:Connect(function() spCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
 	spCloseBtn.MouseLeave:Connect(function() spCloseBtn.BackgroundColor3 = Theme.ButtonDanger end)
 	spCloseBtn.MouseButton1Click:Connect(function() stateProbeFrame.Visible = false end)
 
 	local spScroll = Instance.new("ScrollingFrame")
-	spScroll.Size               = UDim2.new(1, -16, 1, -92)
+	spScroll.Size               = UDim2.new(1, -16, 1, -84)
 	spScroll.Position           = UDim2.new(0, 8, 0, 40)
 	spScroll.BackgroundColor3   = Color3.fromRGB(12, 13, 18)
 	spScroll.BorderSizePixel    = 0
@@ -1754,6 +1758,7 @@ do
 	spBtnBar.Position         = UDim2.new(0, 8, 1, -42)
 	spBtnBar.BackgroundColor3 = Color3.fromRGB(18, 24, 36)
 	spBtnBar.BorderSizePixel  = 0
+	spBtnBar.ZIndex           = 2
 	spBtnBar.Parent           = stateProbeFrame
 	mkCorner(spBtnBar, 5)
 	mkStroke(spBtnBar, Color3.fromRGB(60, 90, 80))
@@ -1762,11 +1767,12 @@ do
 	spCopyAllBtn.Size             = UDim2.new(1, -10, 1, -10)
 	spCopyAllBtn.Position         = UDim2.new(0, 5, 0, 5)
 	spCopyAllBtn.BackgroundColor3 = Color3.fromRGB(48, 88, 150)
-	spCopyAllBtn.Text             = "Copy Visible"
+	spCopyAllBtn.Text             = "Copy Visible Entries"
 	spCopyAllBtn.TextColor3       = Theme.TextPrimary
 	spCopyAllBtn.Font             = Enum.Font.GothamBold
 	spCopyAllBtn.TextSize         = 10
 	spCopyAllBtn.BorderSizePixel  = 0
+	spCopyAllBtn.ZIndex           = 3
 	spCopyAllBtn.Parent           = spBtnBar
 	spCopyAllBtn.AutoButtonColor  = false
 	mkCorner(spCopyAllBtn, 4)
