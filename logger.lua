@@ -32,7 +32,38 @@ local deepSerializeArg = RemoteHelpers.deepSerializeArg
 local serializeArgs = RemoteHelpers.serializeArgs
 local buildCode = RemoteHelpers.buildCode
 local tryClipboard = RemoteHelpers.tryClipboard
-local watchLocalCharacterState = StateProbe.createWatcher()
+-- State probe UI storage
+local stateProbeEntries = {}  -- Keyed by "path :: fieldName"
+local stateProbeContainer
+
+local function onStateProbeEvent(event)
+	if not stateProbeContainer then return end
+	
+	-- Create unique key for deduplication
+	local key = event.path .. " :: " .. event.fieldName
+	
+	-- Skip if already exists
+	if stateProbeEntries[key] then return end
+	
+	stateProbeEntries[key] = event
+	
+	-- Create entry display
+	local entryLabel = Instance.new("TextLabel")
+	entryLabel.Size = UDim2.new(0, 180, 0, 40)
+	entryLabel.BackgroundColor3 = Color3.fromRGB(25, 35, 50)
+	entryLabel.BorderSizePixel = 0
+	entryLabel.Text = event.fieldName .. "\n" .. event.value
+	entryLabel.TextColor3 = Color3.fromRGB(180, 220, 255)
+	entryLabel.TextXAlignment = Enum.TextXAlignment.Center
+	entryLabel.TextYAlignment = Enum.TextYAlignment.Center
+	entryLabel.Font = Enum.Font.Gotham
+	entryLabel.TextSize = 10
+	entryLabel.Parent = stateProbeContainer
+	mkCorner(entryLabel, 4)
+	UIHelpers.mkStroke(entryLabel, Theme.StrokeColor, Color3.fromRGB(100, 150, 200), 1)
+end
+
+local watchLocalCharacterState = StateProbe.createWatcher(onStateProbeEvent)
 
 local mkCorner = UIHelpers.mkCorner
 local function mkStroke(parent, color, thick)
@@ -174,6 +205,21 @@ pauseRemotesBtn.BorderSizePixel  = 0
 pauseRemotesBtn.Visible          = false
 pauseRemotesBtn.Parent           = titleBar
 mkCorner(pauseRemotesBtn, 4)
+
+local probeBtn = Instance.new("TextButton")
+probeBtn.Size             = UDim2.new(0, 60, 0, 22)
+probeBtn.Position         = UDim2.new(1, -285, 0, 5)
+probeBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 100)
+probeBtn.Text             = "🔍 Probe"
+probeBtn.TextColor3       = Theme.TextPrimary
+probeBtn.Font             = Enum.Font.Gotham
+probeBtn.TextSize         = 9
+probeBtn.BorderSizePixel  = 0
+probeBtn.Parent           = titleBar
+mkCorner(probeBtn, 4)
+probeBtn.MouseButton1Click:Connect(function()
+	stateProbeFrame.Visible = not stateProbeFrame.Visible
+end)
 
 local mainCloseBtn = Instance.new("TextButton")
 mainCloseBtn.Size             = UDim2.new(0, 24, 0, 22)
@@ -1514,6 +1560,117 @@ mkCorner(rdResizeGrip, 3)
 rdResizeGrip.MouseEnter:Connect(function() rdResizeGrip.BackgroundTransparency = 0   end)
 rdResizeGrip.MouseLeave:Connect(function() rdResizeGrip.BackgroundTransparency = 0.4 end)
 
+-- ========== STATE PROBE PANEL ==========
+local stateProbeFrame = Instance.new("Frame")
+stateProbeFrame.Name             = "StateProbeFrame"
+stateProbeFrame.Size             = UDim2.new(0, 400, 0, 480)
+stateProbeFrame.Position         = UDim2.new(0, 900, 0, 80)
+stateProbeFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+stateProbeFrame.BorderSizePixel  = 0
+stateProbeFrame.Visible          = false
+stateProbeFrame.Active           = true
+stateProbeFrame.Parent           = screenGui
+mkCorner(stateProbeFrame, 8)
+mkStroke(stateProbeFrame, Color3.fromRGB(80, 120, 100))
+
+local spTitleBar = Instance.new("Frame")
+spTitleBar.Size             = UDim2.new(1, 0, 0, 32)
+spTitleBar.BackgroundColor3 = Color3.fromRGB(28, 45, 38)
+spTitleBar.BorderSizePixel  = 0; spTitleBar.Active = true
+spTitleBar.Parent           = stateProbeFrame
+mkCorner(spTitleBar, 8)
+
+local spTitleLabel = Instance.new("TextLabel")
+spTitleLabel.Size               = UDim2.new(1, -100, 1, 0)
+spTitleLabel.Position           = UDim2.new(0, 12, 0, 0)
+spTitleLabel.BackgroundTransparency = 1
+spTitleLabel.Text               = "🔍  State Probe"
+spTitleLabel.TextColor3         = Color3.fromRGB(150, 220, 180)
+spTitleLabel.TextXAlignment     = Enum.TextXAlignment.Left
+spTitleLabel.Font               = Enum.Font.GothamBold; spTitleLabel.TextSize = 13
+spTitleLabel.TextTruncate       = Enum.TextTruncate.AtEnd
+spTitleLabel.Parent             = spTitleBar
+
+local spClearBtn = Instance.new("TextButton")
+spClearBtn.Size             = UDim2.new(0, 40, 0, 22)
+spClearBtn.Position         = UDim2.new(1, -48, 0, 5)
+spClearBtn.BackgroundColor3 = Color3.fromRGB(80, 100, 60)
+spClearBtn.Text             = "Clear"; spClearBtn.TextColor3 = Theme.TextPrimary
+spClearBtn.Font             = Enum.Font.GothamBold; spClearBtn.TextSize = 10
+spClearBtn.BorderSizePixel  = 0; spClearBtn.Parent = spTitleBar
+mkCorner(spClearBtn, 4)
+spClearBtn.MouseEnter:Connect(function() spClearBtn.BackgroundColor3 = Color3.fromRGB(120, 140, 80) end)
+spClearBtn.MouseLeave:Connect(function() spClearBtn.BackgroundColor3 = Color3.fromRGB(80, 100, 60) end)
+
+local spCloseBtn = Instance.new("TextButton")
+spCloseBtn.Size             = UDim2.new(0, 24, 0, 22)
+spCloseBtn.Position         = UDim2.new(1, -30, 0, 5)
+spCloseBtn.BackgroundColor3 = Theme.ButtonDanger
+spCloseBtn.Text             = "X"; spCloseBtn.TextColor3 = Theme.TextPrimary
+spCloseBtn.Font             = Enum.Font.GothamBold; spCloseBtn.TextSize = 12
+spCloseBtn.BorderSizePixel  = 0; spCloseBtn.Parent = spTitleBar
+mkCorner(spCloseBtn, 4)
+spCloseBtn.MouseEnter:Connect(function() spCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
+spCloseBtn.MouseLeave:Connect(function() spCloseBtn.BackgroundColor3 = Theme.ButtonDanger end)
+spCloseBtn.MouseButton1Click:Connect(function() stateProbeFrame.Visible = false end)
+
+local spScroll = Instance.new("ScrollingFrame")
+spScroll.Size               = UDim2.new(1, -16, 1, -50)
+spScroll.Position           = UDim2.new(0, 8, 0, 40)
+spScroll.BackgroundColor3   = Color3.fromRGB(12, 13, 18)
+spScroll.BorderSizePixel    = 0
+spScroll.ScrollBarThickness = 6
+spScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 120)
+spScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
+spScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
+spScroll.ScrollDirection    = Enum.ScrollDirection.X
+spScroll.Parent             = stateProbeFrame
+mkCorner(spScroll, 4)
+
+local spGridLayout = Instance.new("UIGridLayout", spScroll)
+spGridLayout.CellSize = UDim2.new(0, 190, 0, 50)
+spGridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+spGridLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+spGridLayout.StartCorner = Enum.StartCorner.TopLeft
+do
+	local spPad = Instance.new("UIPadding", spScroll)
+	spPad.PaddingTop = UDim.new(0,6)
+	spPad.PaddingBottom = UDim.new(0,8)
+	spPad.PaddingLeft = UDim.new(0,8)
+	spPad.PaddingRight = UDim.new(0,6)
+end
+
+stateProbeContainer = spScroll
+
+spClearBtn.MouseButton1Click:Connect(function()
+	stateProbeEntries = {}
+	spScroll:ClearAllChildren()
+	spGridLayout = Instance.new("UIGridLayout", spScroll)
+	spGridLayout.CellSize = UDim2.new(0, 190, 0, 50)
+	spGridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+	spGridLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+	spGridLayout.StartCorner = Enum.StartCorner.TopLeft
+	local spPad = Instance.new("UIPadding", spScroll)
+	spPad.PaddingTop = UDim.new(0,6)
+	spPad.PaddingBottom = UDim.new(0,8)
+	spPad.PaddingLeft = UDim.new(0,8)
+	spPad.PaddingRight = UDim.new(0,6)
+end)
+
+local spResizeGrip = Instance.new("TextButton")
+spResizeGrip.Size                   = UDim2.new(0, 16, 0, 16)
+spResizeGrip.Position               = UDim2.new(1, -18, 1, -18)
+spResizeGrip.BackgroundColor3       = Color3.fromRGB(100, 150, 120)
+spResizeGrip.BackgroundTransparency = 0.4
+spResizeGrip.Text                   = "⇲"
+spResizeGrip.TextColor3             = Color3.fromRGB(200, 245, 220)
+spResizeGrip.Font                   = Enum.Font.GothamBold; spResizeGrip.TextSize = 12
+spResizeGrip.BorderSizePixel        = 0; spResizeGrip.AutoButtonColor = false
+spResizeGrip.Parent                 = stateProbeFrame
+mkCorner(spResizeGrip, 3)
+spResizeGrip.MouseEnter:Connect(function() spResizeGrip.BackgroundTransparency = 0   end)
+spResizeGrip.MouseLeave:Connect(function() spResizeGrip.BackgroundTransparency = 0.4 end)
+
 -- ========== DRAG / RESIZE ==========
 local function bindDrag(bar, frame)
 	local active, origin, startP = false, nil, nil
@@ -1560,11 +1717,13 @@ local dragCallbacks = {
 	bindDrag(titleBar,         mainFrame),
 	bindDrag(detailTitleBar,   detailFrame),
 	bindDrag(rdTitleBar,       remDetailFrame),
+	bindDrag(spTitleBar,       stateProbeFrame),
 }
 local resizeCallbacks = {
 	bindResize(resizeGrip,           mainFrame),
 	bindResize(animDetailResizeGrip, detailFrame),
 	bindResize(rdResizeGrip,         remDetailFrame),
+	bindResize(spResizeGrip,         stateProbeFrame),
 }
 
 UserInputService.InputChanged:Connect(function(input)

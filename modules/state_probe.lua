@@ -49,13 +49,23 @@ local function formatStateProbeValue(value)
     return tostring(value)
 end
 
-local function stateProbeLog(root, eventName, instance, fieldName, value)
-    print(("[StateProbe][%s] %s :: %s = %s"):format(
-        eventName,
-        getInstanceProbePath(root, instance),
-        tostring(fieldName),
-        formatStateProbeValue(value)
-    ))
+local function stateProbeLog(root, eventName, instance, fieldName, value, callback)
+    local path = getInstanceProbePath(root, instance)
+    local fieldStr = tostring(fieldName)
+    local valueStr = formatStateProbeValue(value)
+    local msg = ("[StateProbe][%s] %s :: %s = %s"):format(eventName, path, fieldStr, valueStr)
+    
+    print(msg)
+    
+    if callback then
+        callback({
+            eventName = eventName,
+            path = path,
+            fieldName = fieldStr,
+            value = valueStr,
+            message = msg,
+        })
+    end
 end
 
 local function disconnectAll(connections)
@@ -80,23 +90,13 @@ local function watchLocalCharacterState(character, state)
         return conn
     end
 
-    local function watchAttributes(instance, logExisting)
-        if state.seenInstances[instance] then return end
-        state.seenInstances[instance] = true
-
-        if logExisting then
-            local attributes = safeGet(function()
-                return instance:GetAttributes()
-            end)
-            if type(attributes) == "table" then
-                for name, value in pairs(attributes) do
-                    stateProbeLog(character, "InitialAttribute", instance, name, value)
+    local function watchAttributes(instance, logExisting), state.callback)
                 end
             end
         end
 
         bind(instance.AttributeChanged, function(name)
-            stateProbeLog(character, "AttributeChanged", instance, name, instance:GetAttribute(name))
+            stateProbeLog(character, "AttributeChanged", instance, name, instance:GetAttribute(name), state.callback)
         end)
     end
 
@@ -104,9 +104,9 @@ local function watchLocalCharacterState(character, state)
         if state.seenValueObjects[valueObject] then return end
         state.seenValueObjects[valueObject] = true
 
-        stateProbeLog(character, "InitialValue", valueObject, "Value", valueObject.Value)
+        stateProbeLog(character, "InitialValue", valueObject, "Value", valueObject.Value, state.callback)
         bind(valueObject:GetPropertyChangedSignal("Value"), function()
-            stateProbeLog(character, "ValueChanged", valueObject, "Value", valueObject.Value)
+            stateProbeLog(character, "ValueChanged", valueObject, "Value", valueObject.Value, state.callback)
         end)
     end
 
@@ -115,9 +115,9 @@ local function watchLocalCharacterState(character, state)
         if instance:IsA("ValueBase") then
             watchValueObject(instance)
         elseif instance:IsA("Humanoid") then
-            stateProbeLog(character, "InitialHumanoidState", instance, "HumanoidState", instance:GetState())
+            stateProbeLog(character, "InitialHumanoidState", instance, "HumanoidState", instance:GetState(), state.callback)
             bind(instance.StateChanged, function(_oldState, newState)
-                stateProbeLog(character, "HumanoidStateChanged", instance, "HumanoidState", newState)
+                stateProbeLog(character, "HumanoidStateChanged", instance, "HumanoidState", newState, state.callback)
             end)
         end
     end
@@ -131,15 +131,26 @@ local function watchLocalCharacterState(character, state)
 
     bind(character.DescendantAdded, function(instance)
         inspectInstance(instance)
+        stateProbeLog(character, "DescendantAdded", instance, "ClassName", instance.ClassName, state.callback
+    print(("[StateProbe] Hooked %s"):format(getInstanceProbePath(character, character)))
+
+    inspectInstance(character)
+    for _, instance in ipairs(character:GetDescendants()) do
+        inspectInstance(instance)
+    end
+
+    bind(character.DescendantAdded, function(instance)
+        inspectInstance(instance)
         stateProbeLog(character, "DescendantAdded", instance, "ClassName", instance.ClassName)
     end)
 end
 
-local function createWatcher()
+local function createWatcher(onProbeEvent)
     local state = {
         connections = {},
         seenInstances = newWeakSet(),
         seenValueObjects = newWeakSet(),
+        callback = onProbeEvent,
     }
 
     return function(character)
