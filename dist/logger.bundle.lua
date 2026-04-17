@@ -522,6 +522,11 @@ end
 
 -- State probe UI storage
 local stateProbeEntries = {}  -- Keyed by "path :: fieldName"
+local stateProbeView = {
+	filterTypes = { "All", "boolean", "number", "string", "Instance", "EnumItem", "table", "Vector3", "Vector2", "CFrame", "Color3" },
+	filterIndex = 1,
+	nextOrder = 0,
+}
 local stateProbeContainer
 local stateProbeSelectedEntry
 local stateProbeSelectedEvent
@@ -532,6 +537,32 @@ local stateProbeCopyPathBtn
 local stateProbeCopyValueBtn
 local stateProbeCopyLogBtn
 local showStateProbeDetail
+local flashStateProbeBtn
+
+local function getStateProbeFilterType()
+	return stateProbeView.filterTypes[stateProbeView.filterIndex] or "All"
+end
+
+local function getStateProbeFilterLabel()
+	local filterType = getStateProbeFilterType()
+	return filterType == "All" and "Filter: All" or ("Filter: " .. filterType)
+end
+
+local function stateProbeMatchesFilter(event)
+	local filterType = getStateProbeFilterType()
+	return filterType == "All" or event.valueType == filterType
+end
+
+local function applyStateProbeFilter()
+	for _, event in pairs(stateProbeEntries) do
+		if event.button then
+			event.button.Visible = stateProbeMatchesFilter(event)
+		end
+	end
+	if stateProbeView.filterBtn then
+		stateProbeView.filterBtn.Text = getStateProbeFilterLabel()
+	end
+end
 
 local function getStateProbeEntryLabel(event)
 	if event.fieldName == "Value" and event.instanceName and event.instanceName ~= "" then
@@ -550,6 +581,8 @@ local function onStateProbeEvent(event)
 	if stateProbeEntries[key] then return end
 	
 	stateProbeEntries[key] = event
+	stateProbeView.nextOrder = stateProbeView.nextOrder + 1
+	event.order = stateProbeView.nextOrder
 	event.displayLabel = getStateProbeEntryLabel(event)
 	
 	-- Create entry display
@@ -564,6 +597,7 @@ local function onStateProbeEvent(event)
 	entryButton.TextYAlignment = Enum.TextYAlignment.Center
 	entryButton.Font = Enum.Font.Gotham
 	entryButton.TextSize = 10
+	entryButton.LayoutOrder = event.order
 	entryButton.TextWrapped = true
 	entryButton.Parent = stateProbeContainer
 	mkCorner(entryButton, 4)
@@ -586,6 +620,8 @@ local function onStateProbeEvent(event)
 			showStateProbeDetail(event)
 		end
 	end)
+
+	applyStateProbeFilter()
 end
 
 local watchLocalCharacterState = StateProbe.createWatcher(onStateProbeEvent)
@@ -2108,7 +2144,7 @@ mkCorner(spTitleBar, 8)
 
 do
 	local spTitleLabel = Instance.new("TextLabel")
-	spTitleLabel.Size               = UDim2.new(1, -136, 1, 0)
+	spTitleLabel.Size               = UDim2.new(1, -228, 1, 0)
 	spTitleLabel.Position           = UDim2.new(0, 12, 0, 0)
 	spTitleLabel.BackgroundTransparency = 1
 	spTitleLabel.Text               = "State Probe"
@@ -2117,6 +2153,24 @@ do
 	spTitleLabel.Font               = Enum.Font.GothamBold; spTitleLabel.TextSize = 13
 	spTitleLabel.TextTruncate       = Enum.TextTruncate.AtEnd
 	spTitleLabel.Parent             = spTitleBar
+
+	local spFilterBtn = Instance.new("TextButton")
+	spFilterBtn.Size             = UDim2.new(0, 84, 0, 22)
+	spFilterBtn.Position         = UDim2.new(1, -174, 0, 5)
+	spFilterBtn.BackgroundColor3 = Color3.fromRGB(50, 80, 95)
+	spFilterBtn.Text             = getStateProbeFilterLabel()
+	spFilterBtn.TextColor3       = Theme.TextPrimary
+	spFilterBtn.Font             = Enum.Font.GothamBold; spFilterBtn.TextSize = 9
+	spFilterBtn.BorderSizePixel  = 0; spFilterBtn.Parent = spTitleBar
+	spFilterBtn.TextTruncate     = Enum.TextTruncate.AtEnd
+	mkCorner(spFilterBtn, 4)
+	spFilterBtn.MouseEnter:Connect(function() spFilterBtn.BackgroundColor3 = Color3.fromRGB(70, 100, 120) end)
+	spFilterBtn.MouseLeave:Connect(function() spFilterBtn.BackgroundColor3 = Color3.fromRGB(50, 80, 95) end)
+	spFilterBtn.MouseButton1Click:Connect(function()
+		stateProbeView.filterIndex = (stateProbeView.filterIndex % #stateProbeView.filterTypes) + 1
+		applyStateProbeFilter()
+	end)
+	stateProbeView.filterBtn = spFilterBtn
 
 	local spClearBtn = Instance.new("TextButton")
 	spClearBtn.Size             = UDim2.new(0, 40, 0, 22)
@@ -2142,7 +2196,7 @@ do
 	spCloseBtn.MouseButton1Click:Connect(function() stateProbeFrame.Visible = false end)
 
 	local spScroll = Instance.new("ScrollingFrame")
-	spScroll.Size               = UDim2.new(1, -16, 1, -50)
+	spScroll.Size               = UDim2.new(1, -16, 1, -92)
 	spScroll.Position           = UDim2.new(0, 8, 0, 40)
 	spScroll.BackgroundColor3   = Color3.fromRGB(12, 13, 18)
 	spScroll.BorderSizePixel    = 0
@@ -2171,8 +2225,34 @@ do
 
 	stateProbeContainer = spScroll
 
+	local spBtnBar = Instance.new("Frame")
+	spBtnBar.Size             = UDim2.new(1, -16, 0, 34)
+	spBtnBar.Position         = UDim2.new(0, 8, 1, -42)
+	spBtnBar.BackgroundColor3 = Color3.fromRGB(18, 24, 36)
+	spBtnBar.BorderSizePixel  = 0
+	spBtnBar.Parent           = stateProbeFrame
+	mkCorner(spBtnBar, 5)
+	mkStroke(spBtnBar, Color3.fromRGB(60, 90, 80))
+
+	local spCopyAllBtn = Instance.new("TextButton")
+	spCopyAllBtn.Size             = UDim2.new(1, -10, 1, -10)
+	spCopyAllBtn.Position         = UDim2.new(0, 5, 0, 5)
+	spCopyAllBtn.BackgroundColor3 = Color3.fromRGB(48, 88, 150)
+	spCopyAllBtn.Text             = "Copy Visible"
+	spCopyAllBtn.TextColor3       = Theme.TextPrimary
+	spCopyAllBtn.Font             = Enum.Font.GothamBold
+	spCopyAllBtn.TextSize         = 10
+	spCopyAllBtn.BorderSizePixel  = 0
+	spCopyAllBtn.Parent           = spBtnBar
+	spCopyAllBtn.AutoButtonColor  = false
+	mkCorner(spCopyAllBtn, 4)
+	spCopyAllBtn.MouseEnter:Connect(function() spCopyAllBtn.BackgroundTransparency = 0.25 end)
+	spCopyAllBtn.MouseLeave:Connect(function() spCopyAllBtn.BackgroundTransparency = 0 end)
+	stateProbeView.copyAllBtn = spCopyAllBtn
+
 	spClearBtn.MouseButton1Click:Connect(function()
 		stateProbeEntries = {}
+		stateProbeView.nextOrder = 0
 		stateProbeSelectedEntry = nil
 		stateProbeSelectedEvent = nil
 		spScroll:ClearAllChildren()
@@ -2189,6 +2269,7 @@ do
 		if stateProbeDetailFrame then
 			stateProbeDetailFrame.Visible = false
 		end
+		applyStateProbeFilter()
 	end)
 end
 
@@ -2490,7 +2571,7 @@ local function showRemoteDetail(data)
 	end
 end
 
-local function flashStateProbeBtn(btn, msg, orig)
+flashStateProbeBtn = function(btn, msg, orig)
 	btn.Text = msg
 	task.delay(1.3, function()
 		if btn and btn.Parent then
@@ -2535,6 +2616,42 @@ showStateProbeDetail = function(event)
 
 	stateProbeDetailBody.Text = table.concat(lines, "\n")
 end
+
+stateProbeView.copyAllBtn.MouseButton1Click:Connect(function()
+	local visibleEvents = {}
+	for _, event in pairs(stateProbeEntries) do
+		if event.button and event.button.Visible then
+			visibleEvents[#visibleEvents + 1] = event
+		end
+	end
+
+	table.sort(visibleEvents, function(a, b)
+		return (a.order or 0) < (b.order or 0)
+	end)
+
+	if #visibleEvents == 0 then
+		flashStateProbeBtn(stateProbeView.copyAllBtn, "No Entries", "Copy Visible")
+		return
+	end
+
+	local lines = {}
+	for _, event in ipairs(visibleEvents) do
+		lines[#lines + 1] = ("%s = %s | %s | %s"):format(
+			event.displayLabel or event.fieldName or "Unknown",
+			event.value or "nil",
+			event.valueType or "?",
+			event.fullPath or event.path or "?"
+		)
+	end
+
+	local payload = table.concat(lines, "\n")
+	if tryClipboard(payload) then
+		flashStateProbeBtn(stateProbeView.copyAllBtn, "Copied", "Copy Visible")
+	else
+		print("[StateProbe] Visible Entries:\n" .. payload)
+		flashStateProbeBtn(stateProbeView.copyAllBtn, "Printed", "Copy Visible")
+	end
+end)
 
 stateProbeCopyPathBtn.MouseButton1Click:Connect(function()
 	if not stateProbeSelectedEvent then
