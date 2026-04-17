@@ -1605,7 +1605,7 @@ local function setTab(tab)
 		clearBtn.Visible        = false
 		pauseAnimBtn.Visible    = false
 		pauseRemotesBtn.Visible = true
-		if applyRemoteFilter then
+		if type(applyRemoteFilter) == "function" then
 			applyRemoteFilter()  -- reapply search filter when tab shown
 		end
 	else
@@ -1660,7 +1660,7 @@ localPlayerFilterBtn.MouseButton1Click:Connect(function()
 	remoteFilterLocal = not remoteFilterLocal
 	localPlayerFilterBtn.Text = remoteFilterLocal and "Local" or "All"
 	localPlayerFilterBtn.BackgroundColor3 = remoteFilterLocal and Color3.fromRGB(60,100,60) or Theme.ButtonDefault
-	if applyRemoteFilter then
+	if type(applyRemoteFilter) == "function" then
 		applyRemoteFilter()
 	end
 end)
@@ -2082,7 +2082,9 @@ spScroll.ScrollBarThickness = 6
 spScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 120)
 spScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
 spScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
-spScroll.ScrollDirection    = Enum.ScrollDirection.X
+pcall(function()
+	spScroll.ScrollingDirection = Enum.ScrollingDirection.X
+end)
 spScroll.Parent             = stateProbeFrame
 mkCorner(spScroll, 4)
 
