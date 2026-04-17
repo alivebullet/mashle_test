@@ -450,8 +450,6 @@ local RunService       = game:GetService("RunService")
 local DEFAULT_DETECTION_RADIUS = 100
 local MAX_DETECTION_RADIUS     = 200
 local MAX_LOG_ENTRIES       = 100
-local MIN_WIDTH, MIN_HEIGHT = 520, 360
-local MAX_WIDTH, MAX_HEIGHT = 1200, 900
 
 local localPlayer = Players.LocalPlayer
 local playerGui   = localPlayer:WaitForChild("PlayerGui")
@@ -824,9 +822,12 @@ scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 scrollFrame.Parent             = animContent
 mkCorner(scrollFrame, 4)
 Instance.new("UIListLayout", scrollFrame).SortOrder = Enum.SortOrder.LayoutOrder
-local sfPad = Instance.new("UIPadding", scrollFrame)
-sfPad.PaddingTop = UDim.new(0,4);
-sfPad.PaddingLeft = UDim.new(0,6); sfPad.PaddingRight = UDim.new(0,6)
+do
+	local sfPad = Instance.new("UIPadding", scrollFrame)
+	sfPad.PaddingTop = UDim.new(0,4)
+	sfPad.PaddingLeft = UDim.new(0,6)
+	sfPad.PaddingRight = UDim.new(0,6)
+end
 do local ll = scrollFrame:FindFirstChildOfClass("UIListLayout");
 ll.Padding = UDim.new(0,2) end
 
@@ -953,63 +954,6 @@ visualizeRangeBtn.TextSize = 10
 visualizeRangeBtn.BorderSizePixel = 0
 visualizeRangeBtn.Parent = detectionSection
 mkCorner(visualizeRangeBtn, 4)
-
-local function createSimpleSlider(parent, y, labelText, minVal, maxVal)
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(0, 74, 0, 16)
-	label.Position = UDim2.new(0, 10, 0, y)
-	label.BackgroundTransparency = 1
-	label.Text = labelText
-	label.TextColor3 = Theme.TextSecondary
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.Font = Enum.Font.Gotham
-	label.TextSize = 10
-	label.Parent = parent
-
-	local valueLabel = Instance.new("TextLabel")
-	valueLabel.Size = UDim2.new(0, 40, 0, 16)
-	valueLabel.Position = UDim2.new(1, -50, 0, y)
-	valueLabel.BackgroundTransparency = 1
-	valueLabel.Text = tostring(minVal)
-	valueLabel.TextColor3 = Theme.TextMuted
-	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-	valueLabel.Font = Enum.Font.Gotham
-	valueLabel.TextSize = 10
-	valueLabel.Parent = parent
-
-	local track = Instance.new("Frame")
-	track.Size = UDim2.new(1, -130, 0, 10)
-	track.Position = UDim2.new(0, 84, 0, y + 3)
-	track.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-	track.BorderSizePixel = 0
-	track.Parent = parent
-	mkCorner(track, 5)
-
-	local fill = Instance.new("Frame")
-	fill.Size = UDim2.new(0, 0, 1, 0)
-	fill.BackgroundColor3 = Color3.fromRGB(75, 120, 185)
-	fill.BorderSizePixel = 0
-	fill.Parent = track
-	mkCorner(fill, 5)
-
-	local knob = Instance.new("Frame")
-	knob.Size = UDim2.new(0, 12, 0, 12)
-	knob.Position = UDim2.new(0, -6, 0.5, -6)
-	knob.BackgroundColor3 = Color3.fromRGB(210, 220, 240)
-	knob.BorderSizePixel = 0
-	knob.Parent = track
-	mkCorner(knob, 6)
-
-	return {
-		min = minVal,
-		max = maxVal,
-		label = label,
-		valueLabel = valueLabel,
-		track = track,
-		fill = fill,
-		knob = knob,
-	}
-end
 
 local visualSettingsLabel = Instance.new("TextLabel")
 visualSettingsLabel.Size = UDim2.new(1, -20, 0, 20)
@@ -1184,7 +1128,67 @@ satKnob.Parent = satTrack
 mkCorner(satKnob, 6)
 mkStroke(satKnob, Color3.fromRGB(20, 20, 24))
 
-local opacitySlider = createSimpleSlider(colorPickerFrame, 68, "Opacity", 0, 100)
+local opacitySlider
+do
+	local function createSimpleSlider(parent, y, labelText, minVal, maxVal)
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(0, 74, 0, 16)
+		label.Position = UDim2.new(0, 10, 0, y)
+		label.BackgroundTransparency = 1
+		label.Text = labelText
+		label.TextColor3 = Theme.TextSecondary
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		label.Font = Enum.Font.Gotham
+		label.TextSize = 10
+		label.Parent = parent
+
+		local valueLabel = Instance.new("TextLabel")
+		valueLabel.Size = UDim2.new(0, 40, 0, 16)
+		valueLabel.Position = UDim2.new(1, -50, 0, y)
+		valueLabel.BackgroundTransparency = 1
+		valueLabel.Text = tostring(minVal)
+		valueLabel.TextColor3 = Theme.TextMuted
+		valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+		valueLabel.Font = Enum.Font.Gotham
+		valueLabel.TextSize = 10
+		valueLabel.Parent = parent
+
+		local track = Instance.new("Frame")
+		track.Size = UDim2.new(1, -130, 0, 10)
+		track.Position = UDim2.new(0, 84, 0, y + 3)
+		track.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+		track.BorderSizePixel = 0
+		track.Parent = parent
+		mkCorner(track, 5)
+
+		local fill = Instance.new("Frame")
+		fill.Size = UDim2.new(0, 0, 1, 0)
+		fill.BackgroundColor3 = Color3.fromRGB(75, 120, 185)
+		fill.BorderSizePixel = 0
+		fill.Parent = track
+		mkCorner(fill, 5)
+
+		local knob = Instance.new("Frame")
+		knob.Size = UDim2.new(0, 12, 0, 12)
+		knob.Position = UDim2.new(0, -6, 0.5, -6)
+		knob.BackgroundColor3 = Color3.fromRGB(210, 220, 240)
+		knob.BorderSizePixel = 0
+		knob.Parent = track
+		mkCorner(knob, 6)
+
+		return {
+			min = minVal,
+			max = maxVal,
+			label = label,
+			valueLabel = valueLabel,
+			track = track,
+			fill = fill,
+			knob = knob,
+		}
+	end
+
+	opacitySlider = createSimpleSlider(colorPickerFrame, 68, "Opacity", 0, 100)
+end
 opacitySlider.fill.BackgroundColor3 = Color3.fromRGB(120, 120, 170)
 
 local settingsBackBtn = Instance.new("TextButton")
@@ -1234,12 +1238,15 @@ remoteScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
 remoteScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 remoteScroll.Parent             = remoteContent
 mkCorner(remoteScroll, 4)
-local remLL = Instance.new("UIListLayout", remoteScroll)
-remLL.SortOrder = Enum.SortOrder.LayoutOrder;
-remLL.Padding = UDim.new(0, 2)
-local remPad = Instance.new("UIPadding", remoteScroll)
-remPad.PaddingTop = UDim.new(0,4); remPad.PaddingLeft = UDim.new(0,6);
-remPad.PaddingRight = UDim.new(0,6)
+do
+	local remLL = Instance.new("UIListLayout", remoteScroll)
+	remLL.SortOrder = Enum.SortOrder.LayoutOrder
+	remLL.Padding = UDim.new(0, 2)
+	local remPad = Instance.new("UIPadding", remoteScroll)
+	remPad.PaddingTop = UDim.new(0,4)
+	remPad.PaddingLeft = UDim.new(0,6)
+	remPad.PaddingRight = UDim.new(0,6)
+end
 
 -- ===== Remote Action Bar =====
 local remoteActionBar = Instance.new("Frame")
@@ -1251,29 +1258,32 @@ remoteActionBar.Parent           = remoteContent
 mkCorner(remoteActionBar, 5);
 mkStroke(remoteActionBar, Color3.fromRGB(50, 50, 65))
 
-local ACTION_COLORS = {
-	Color3.fromRGB(48, 88, 150), Color3.fromRGB(42, 112, 72),
-	Color3.fromRGB(68, 110, 45), Color3.fromRGB(130, 48, 48),
-}
-local ACTION_LABELS = { "Copy Code", "Copy Path", "Run Code", "Clear" }
-local actionBtns = {}
-for i = 1, 4 do
-	local btn = Instance.new("TextButton")
-	btn.Size             = UDim2.new(0.25, -5, 1, -10)
-	btn.Position         = UDim2.new((i-1)*0.25, (i==1 and 5 or 3), 0, 5)
-	btn.BackgroundColor3 = ACTION_COLORS[i]
-	btn.Text             = ACTION_LABELS[i]
-	btn.TextColor3       = Theme.TextPrimary
-	btn.Font             = Enum.Font.Gotham; btn.TextSize = 10
-	btn.BorderSizePixel  = 0;
-	btn.AutoButtonColor = false
-	btn.Parent           = remoteActionBar
-	mkCorner(btn, 4)
-	btn.MouseEnter:Connect(function() btn.BackgroundTransparency = 0.25 end)
-	btn.MouseLeave:Connect(function() btn.BackgroundTransparency = 0    end)
-	actionBtns[i] = btn
+local copyCodeBtn, copyPathBtn, runCodeBtn, clearRemBtn
+do
+	local actionColors = {
+		Color3.fromRGB(48, 88, 150), Color3.fromRGB(42, 112, 72),
+		Color3.fromRGB(68, 110, 45), Color3.fromRGB(130, 48, 48),
+	}
+	local actionLabels = { "Copy Code", "Copy Path", "Run Code", "Clear" }
+	local actionBtns = {}
+	for i = 1, 4 do
+		local btn = Instance.new("TextButton")
+		btn.Size             = UDim2.new(0.25, -5, 1, -10)
+		btn.Position         = UDim2.new((i-1)*0.25, (i==1 and 5 or 3), 0, 5)
+		btn.BackgroundColor3 = actionColors[i]
+		btn.Text             = actionLabels[i]
+		btn.TextColor3       = Theme.TextPrimary
+		btn.Font             = Enum.Font.Gotham; btn.TextSize = 10
+		btn.BorderSizePixel  = 0
+		btn.AutoButtonColor = false
+		btn.Parent           = remoteActionBar
+		mkCorner(btn, 4)
+		btn.MouseEnter:Connect(function() btn.BackgroundTransparency = 0.25 end)
+		btn.MouseLeave:Connect(function() btn.BackgroundTransparency = 0    end)
+		actionBtns[i] = btn
+	end
+	copyCodeBtn, copyPathBtn, runCodeBtn, clearRemBtn = actionBtns[1], actionBtns[2], actionBtns[3], actionBtns[4]
 end
-local copyCodeBtn, copyPathBtn, runCodeBtn, clearRemBtn = actionBtns[1], actionBtns[2], actionBtns[3], actionBtns[4]
 
 -- Export logs button for remotes
 local exportRemotesBtn = Instance.new("TextButton")
@@ -1742,9 +1752,11 @@ animDetailScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
 animDetailScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 animDetailScroll.Parent             = detailFrame
 mkCorner(animDetailScroll, 4)
-local adPad = Instance.new("UIPadding", animDetailScroll)
-adPad.PaddingTop = UDim.new(0,6);
-adPad.PaddingBottom = UDim.new(0,6)
+do
+	local adPad = Instance.new("UIPadding", animDetailScroll)
+	adPad.PaddingTop = UDim.new(0,6)
+	adPad.PaddingBottom = UDim.new(0,6)
+end
 
 local animDetailText = Instance.new("TextLabel")
 animDetailText.Size               = UDim2.new(1, -16, 0, 0)
@@ -1860,9 +1872,13 @@ rdScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
 rdScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 rdScroll.Parent             = remDetailFrame
 mkCorner(rdScroll, 4)
-local rdPad = Instance.new("UIPadding", rdScroll)
-rdPad.PaddingTop = UDim.new(0,6); rdPad.PaddingBottom = UDim.new(0,8)
-rdPad.PaddingLeft = UDim.new(0,8); rdPad.PaddingRight = UDim.new(0,6)
+do
+	local rdPad = Instance.new("UIPadding", rdScroll)
+	rdPad.PaddingTop = UDim.new(0,6)
+	rdPad.PaddingBottom = UDim.new(0,8)
+	rdPad.PaddingLeft = UDim.new(0,8)
+	rdPad.PaddingRight = UDim.new(0,6)
+end
 
 local rdBodyText = Instance.new("TextLabel")
 rdBodyText.Size               = UDim2.new(1, 0, 0, 0)
@@ -1884,28 +1900,30 @@ rdBtnBar.BackgroundColor3 = Color3.fromRGB(18, 24, 36)
 rdBtnBar.BorderSizePixel  = 0; rdBtnBar.Parent = remDetailFrame
 mkCorner(rdBtnBar, 5); mkStroke(rdBtnBar, Color3.fromRGB(45, 70, 110))
 
-local function makeRdBtn(label, color, idx, total)
-	local w = 1 / total
-	local btn = Instance.new("TextButton")
-	btn.Size             = UDim2.new(w, -5, 1, -10)
-	btn.Position         = UDim2.new(w*(idx-1), (idx==1 and 5 or 3), 0, 5)
-	btn.BackgroundColor3 = color
-	btn.Text             = label
-	btn.TextColor3       = Theme.TextPrimary
-	btn.Font             = Enum.Font.Gotham; btn.TextSize = 10
-	btn.BorderSizePixel  = 0; btn.AutoButtonColor = false
-	btn.Parent           = rdBtnBar
-	mkCorner(btn, 4)
-	btn.MouseEnter:Connect(function() btn.BackgroundTransparency = 0.25 end)
-	btn.MouseLeave:Connect(function() btn.BackgroundTransparency = 0    end)
-	return btn
-end
+local rdCopyCodeBtn, rdCopyPathBtn, rdRunCodeBtn, rdPauseBtn
+do
+	local function makeRdBtn(label, color, idx, total)
+		local w = 1 / total
+		local btn = Instance.new("TextButton")
+		btn.Size             = UDim2.new(w, -5, 1, -10)
+		btn.Position         = UDim2.new(w*(idx-1), (idx==1 and 5 or 3), 0, 5)
+		btn.BackgroundColor3 = color
+		btn.Text             = label
+		btn.TextColor3       = Theme.TextPrimary
+		btn.Font             = Enum.Font.Gotham; btn.TextSize = 10
+		btn.BorderSizePixel  = 0; btn.AutoButtonColor = false
+		btn.Parent           = rdBtnBar
+		mkCorner(btn, 4)
+		btn.MouseEnter:Connect(function() btn.BackgroundTransparency = 0.25 end)
+		btn.MouseLeave:Connect(function() btn.BackgroundTransparency = 0    end)
+		return btn
+	end
 
--- Updated to 4 buttons for individual pause functionality
-local rdCopyCodeBtn = makeRdBtn("📋 Copy Code", Color3.fromRGB(48, 88, 150), 1, 4)
-local rdCopyPathBtn = makeRdBtn("🔗 Copy Path", Color3.fromRGB(40, 105, 70), 2, 4)
-local rdRunCodeBtn  = makeRdBtn("▶ Run Code",  Color3.fromRGB(65, 105, 40), 3, 4)
-local rdPauseBtn    = makeRdBtn("⏸ Pause",     Color3.fromRGB(130, 48, 48), 4, 4)
+	rdCopyCodeBtn = makeRdBtn("📋 Copy Code", Color3.fromRGB(48, 88, 150), 1, 4)
+	rdCopyPathBtn = makeRdBtn("🔗 Copy Path", Color3.fromRGB(40, 105, 70), 2, 4)
+	rdRunCodeBtn  = makeRdBtn("▶ Run Code",  Color3.fromRGB(65, 105, 40), 3, 4)
+	rdPauseBtn    = makeRdBtn("⏸ Pause",     Color3.fromRGB(130, 48, 48), 4, 4)
+end
 
 rdPauseBtn.MouseButton1Click:Connect(function()
 	if not selectedRemoteData then return end
@@ -1973,8 +1991,8 @@ local function bindResize(grip, frame)
 	return function(inputPos)
 		if active and origin and startSz then
 			local d = inputPos - origin
-			frame.Size = UDim2.new(0, math.clamp(startSz.X+d.X, MIN_WIDTH, MAX_WIDTH),
-				0, math.clamp(startSz.Y+d.Y, MIN_HEIGHT, MAX_HEIGHT))
+			frame.Size = UDim2.new(0, math.clamp(startSz.X+d.X, 520, 1200),
+				0, math.clamp(startSz.Y+d.Y, 360, 900))
 		end
 	end
 end
