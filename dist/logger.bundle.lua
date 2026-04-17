@@ -1548,6 +1548,7 @@ local pausedRemoteArchive = {} -- Keeps a restorable snapshot of paused remotes
 local pausedAnimationArchive = {}
 local pausedIndividualAnimations = {} -- animId -> data when individually paused
 local animEntries = {}
+local seenAnimationEntries = {}
 local detectionRadius     = DEFAULT_DETECTION_RADIUS
 local previousTab         = "animations"
 local activeSliderUpdate  = nil
@@ -2989,6 +2990,19 @@ refreshAnimBtn.MouseButton1Click:Connect(refreshAnimDetail)
 -- ========== ANIMATION LOG ENTRY ==========
 local function addLogEntry(data)
 	local idNum = extractIdNumber(data and data.animId)
+	local characterKey = safeGet(function()
+		return data.character and data.character:GetFullName()
+	end) or (data.character and data.character.Name) or "UnknownCharacter"
+	local animKey = table.concat({
+		characterKey,
+		tostring(data.animId or "UnknownAnim"),
+		tostring(data.animName or "Unnamed"),
+	}, "|")
+
+	if seenAnimationEntries[animKey] then
+		return
+	end
+
 	if animLogPaused or (idNum and pausedIndividualAnimations[idNum]) then
 		filteredCount += 1
 		pausedAnimationArchive[#pausedAnimationArchive + 1] = data
@@ -3043,7 +3057,8 @@ local function addLogEntry(data)
 	entry.MouseEnter:Connect(function()  entry.BackgroundColor3 = Theme.EntryHover end)
 	entry.MouseLeave:Connect(function()  entry.BackgroundColor3 = Theme.EntryBg end)
 	entry.MouseButton1Click:Connect(function() showAnimDetailView(data) end)
-	table.insert(animEntries, { button = entry, data = data, player = player })
+	table.insert(animEntries, { button = entry, data = data, player = player, dedupeKey = animKey })
+	seenAnimationEntries[animKey] = true
 	task.defer(function()
 		scrollFrame.CanvasPosition = Vector2.new(0, scrollFrame.AbsoluteCanvasSize.Y)
 	end)
@@ -3054,6 +3069,7 @@ clearBtn.MouseButton1Click:Connect(function()
 		if c:IsA("TextButton") then c:Destroy() end
 	end
 	animEntries = {}
+	seenAnimationEntries = {}
 	detectionCount = 0; filteredCount = 0; updateStatus()
 end)
 
