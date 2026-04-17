@@ -110,9 +110,9 @@ local function applyStateProbeFilter()
 		end
 	end
 	for _, chip in ipairs(asArray(stateProbeView.filterChips)) do
-		local active = chip.filterValue == getStateProbeFilterType()
-		chip.BackgroundColor3 = active and Color3.fromRGB(70, 120, 95) or Color3.fromRGB(42, 56, 72)
-		chip.TextColor3 = active and Color3.fromRGB(240, 255, 245) or Theme.TextPrimary
+		local active = chip.value == getStateProbeFilterType()
+		chip.button.BackgroundColor3 = active and Color3.fromRGB(70, 120, 95) or Color3.fromRGB(42, 56, 72)
+		chip.button.TextColor3 = active and Color3.fromRGB(240, 255, 245) or Theme.TextPrimary
 	end
 end
 
@@ -1790,23 +1790,25 @@ do
 		chip.TextSize = 9
 		chip.ZIndex = 3
 		chip.Parent = spChipScroll
-		chip.filterValue = filter.value
 		mkCorner(chip, 4)
 		chip.MouseEnter:Connect(function()
-			if stateProbeView.selectedFilter ~= chip.filterValue then
+			if stateProbeView.selectedFilter ~= filter.value then
 				chip.BackgroundColor3 = Color3.fromRGB(58, 76, 96)
 			end
 		end)
 		chip.MouseLeave:Connect(function()
-			if stateProbeView.selectedFilter ~= chip.filterValue then
+			if stateProbeView.selectedFilter ~= filter.value then
 				chip.BackgroundColor3 = Color3.fromRGB(42, 56, 72)
 			end
 		end)
 		chip.MouseButton1Click:Connect(function()
-			stateProbeView.selectedFilter = chip.filterValue
+			stateProbeView.selectedFilter = filter.value
 			applyStateProbeFilter()
 		end)
-		table.insert(stateProbeView.filterChips, chip)
+		table.insert(stateProbeView.filterChips, {
+			button = chip,
+			value = filter.value,
+		})
 	end
 
 	spSearchBox:GetPropertyChangedSignal("Text"):Connect(function()
