@@ -583,7 +583,7 @@ titleBar.Active           = true
 titleBar.Parent           = mainFrame
 mkCorner(titleBar, 8)
 
-local titleLabel = Instance.new("TextLabel")
+do local titleLabel = Instance.new("TextLabel")
 titleLabel.Size               = UDim2.new(0, 210, 1, 0)
 titleLabel.Position           = UDim2.new(0, 12, 0, 0)
 titleLabel.BackgroundTransparency = 1
@@ -592,7 +592,7 @@ titleLabel.TextColor3         = Color3.fromRGB(255, 120, 120)
 titleLabel.TextXAlignment     = Enum.TextXAlignment.Left
 titleLabel.Font               = Enum.Font.GothamBold
 titleLabel.TextSize           = 13
-titleLabel.Parent             = titleBar
+titleLabel.Parent             = titleBar end
 
 local settingsBtn = Instance.new("TextButton")
 settingsBtn.Size             = UDim2.new(0, 24, 0, 22)
@@ -701,85 +701,87 @@ confirmFrame.Parent = screenGui
 mkCorner(confirmFrame, 10)
 mkStroke(confirmFrame, Color3.fromRGB(80, 80, 100))
 
-local confirmTitle = Instance.new("TextLabel")
-confirmTitle.Size = UDim2.new(1, -20, 0, 28)
-confirmTitle.Position = UDim2.new(0, 10, 0, 10)
-confirmTitle.BackgroundTransparency = 1
-confirmTitle.Text = "Confirm Permanent Close"
-confirmTitle.TextColor3 = Color3.fromRGB(240, 240, 250)
-confirmTitle.Font = Enum.Font.GothamBold
-confirmTitle.TextSize = 14
-confirmTitle.TextXAlignment = Enum.TextXAlignment.Left
-confirmTitle.Parent = confirmFrame
+do
+	local confirmTitle = Instance.new("TextLabel")
+	confirmTitle.Size = UDim2.new(1, -20, 0, 28)
+	confirmTitle.Position = UDim2.new(0, 10, 0, 10)
+	confirmTitle.BackgroundTransparency = 1
+	confirmTitle.Text = "Confirm Permanent Close"
+	confirmTitle.TextColor3 = Color3.fromRGB(240, 240, 250)
+	confirmTitle.Font = Enum.Font.GothamBold
+	confirmTitle.TextSize = 14
+	confirmTitle.TextXAlignment = Enum.TextXAlignment.Left
+	confirmTitle.Parent = confirmFrame
 
-local confirmText = Instance.new("TextLabel")
-confirmText.Size = UDim2.new(1, -20, 0, 60)
-confirmText.Position = UDim2.new(0, 10, 0, 45)
-confirmText.BackgroundTransparency = 1
-confirmText.Text = "Do you want to permanently close the script?\nYes will destroy all UI created by this script."
-confirmText.TextColor3 = Color3.fromRGB(200, 200, 210)
-confirmText.Font = Enum.Font.Gotham
-confirmText.TextSize = 12
-confirmText.TextWrapped = true
-confirmText.TextYAlignment = Enum.TextYAlignment.Top
-confirmText.Parent = confirmFrame
+	local confirmText = Instance.new("TextLabel")
+	confirmText.Size = UDim2.new(1, -20, 0, 60)
+	confirmText.Position = UDim2.new(0, 10, 0, 45)
+	confirmText.BackgroundTransparency = 1
+	confirmText.Text = "Do you want to permanently close the script?\nYes will destroy all UI created by this script."
+	confirmText.TextColor3 = Color3.fromRGB(200, 200, 210)
+	confirmText.Font = Enum.Font.Gotham
+	confirmText.TextSize = 12
+	confirmText.TextWrapped = true
+	confirmText.TextYAlignment = Enum.TextYAlignment.Top
+	confirmText.Parent = confirmFrame
 
-local confirmButtons = Instance.new("Frame")
-confirmButtons.Size = UDim2.new(1, -20, 0, 36)
-confirmButtons.Position = UDim2.new(0, 10, 1, -46)
-confirmButtons.BackgroundTransparency = 1
-confirmButtons.Parent = confirmFrame
+	local confirmButtons = Instance.new("Frame")
+	confirmButtons.Size = UDim2.new(1, -20, 0, 36)
+	confirmButtons.Position = UDim2.new(0, 10, 1, -46)
+	confirmButtons.BackgroundTransparency = 1
+	confirmButtons.Parent = confirmFrame
 
-local confirmYes = Instance.new("TextButton")
-confirmYes.Size = UDim2.new(0.48, 0, 1, 0)
-confirmYes.Position = UDim2.new(0, 0, 0, 0)
-confirmYes.BackgroundColor3 = Color3.fromRGB(120, 60, 60)
-confirmYes.Text = "Yes"
-confirmYes.TextColor3 = Theme.TextPrimary
-confirmYes.Font = Enum.Font.GothamBold
-confirmYes.TextSize = 12
-confirmYes.BorderSizePixel = 0
-confirmYes.Parent = confirmButtons
-mkCorner(confirmYes, 6)
+	local confirmYes = Instance.new("TextButton")
+	confirmYes.Size = UDim2.new(0.48, 0, 1, 0)
+	confirmYes.Position = UDim2.new(0, 0, 0, 0)
+	confirmYes.BackgroundColor3 = Color3.fromRGB(120, 60, 60)
+	confirmYes.Text = "Yes"
+	confirmYes.TextColor3 = Theme.TextPrimary
+	confirmYes.Font = Enum.Font.GothamBold
+	confirmYes.TextSize = 12
+	confirmYes.BorderSizePixel = 0
+	confirmYes.Parent = confirmButtons
+	mkCorner(confirmYes, 6)
 
-local confirmNo = Instance.new("TextButton")
-confirmNo.Size = UDim2.new(0.48, 0, 1, 0)
-confirmNo.Position = UDim2.new(0.52, 0, 0, 0)
-confirmNo.BackgroundColor3 = Color3.fromRGB(60, 80, 120)
-confirmNo.Text = "No"
-confirmNo.TextColor3 = Theme.TextPrimary
-confirmNo.Font = Enum.Font.GothamBold
-confirmNo.TextSize = 12
-confirmNo.BorderSizePixel = 0
-confirmNo.Parent = confirmButtons
-mkCorner(confirmNo, 6)
+	local confirmNo = Instance.new("TextButton")
+	confirmNo.Size = UDim2.new(0.48, 0, 1, 0)
+	confirmNo.Position = UDim2.new(0.52, 0, 0, 0)
+	confirmNo.BackgroundColor3 = Color3.fromRGB(60, 80, 120)
+	confirmNo.Text = "No"
+	confirmNo.TextColor3 = Theme.TextPrimary
+	confirmNo.Font = Enum.Font.GothamBold
+	confirmNo.TextSize = 12
+	confirmNo.BorderSizePixel = 0
+	confirmNo.Parent = confirmButtons
+	mkCorner(confirmNo, 6)
 
-local function destroyScriptUI()
-	if rangeVisualizerConn then
-		rangeVisualizerConn:Disconnect()
-		rangeVisualizerConn = nil
+	local function destroyScriptUI()
+		if rangeVisualizerConn then
+			rangeVisualizerConn:Disconnect()
+			rangeVisualizerConn = nil
+		end
+		if rangeSphere then
+			rangeSphere:Destroy()
+			rangeSphere = nil
+		end
+		if screenGui and screenGui.Parent then screenGui:Destroy() end
+		if detailFrame and detailFrame.Parent then detailFrame:Destroy() end
+		if remDetailFrame and remDetailFrame.Parent then remDetailFrame:Destroy() end
 	end
-	if rangeSphere then
-		rangeSphere:Destroy()
-		rangeSphere = nil
-	end
-	if screenGui and screenGui.Parent then screenGui:Destroy() end
-	if detailFrame and detailFrame.Parent then detailFrame:Destroy() end
-	if remDetailFrame and remDetailFrame.Parent then remDetailFrame:Destroy() end
+
+	confirmYes.MouseButton1Click:Connect(function()
+		destroyScriptUI()
+	end)
+
+	confirmNo.MouseButton1Click:Connect(function()
+		confirmFrame.Visible = false
+	end)
 end
 
 mainCloseBtn.MouseButton1Click:Connect(function()
 	mainFrame.Visible = false
 	reopenBtn.Visible = true
 	reopenCloseBtn.Visible = true
-end)
-
-confirmYes.MouseButton1Click:Connect(function()
-	destroyScriptUI()
-end)
-
-confirmNo.MouseButton1Click:Connect(function()
-	confirmFrame.Visible = false
 end)
 
 reopenBtn.MouseButton1Click:Connect(function()
@@ -916,7 +918,7 @@ settingsPanel.Parent = settingsContent
 mkCorner(settingsPanel, 4)
 mkStroke(settingsPanel, Color3.fromRGB(48, 48, 60))
 
-local settingsTitle = Instance.new("TextLabel")
+do local settingsTitle = Instance.new("TextLabel")
 settingsTitle.Size = UDim2.new(1, -20, 0, 24)
 settingsTitle.Position = UDim2.new(0, 10, 0, 10)
 settingsTitle.BackgroundTransparency = 1
@@ -925,7 +927,7 @@ settingsTitle.TextColor3 = Theme.TextPrimary
 settingsTitle.TextXAlignment = Enum.TextXAlignment.Left
 settingsTitle.Font = Enum.Font.GothamBold
 settingsTitle.TextSize = 13
-settingsTitle.Parent = settingsPanel
+settingsTitle.Parent = settingsPanel end
 
 local detectionSection = Instance.new("Frame")
 detectionSection.Size = UDim2.new(1, -20, 1, -42)
@@ -936,7 +938,7 @@ detectionSection.Parent = settingsPanel
 mkCorner(detectionSection, 6)
 mkStroke(detectionSection, Color3.fromRGB(62, 62, 82))
 
-local detectionSectionTitle = Instance.new("TextLabel")
+do local detectionSectionTitle = Instance.new("TextLabel")
 detectionSectionTitle.Size = UDim2.new(1, -16, 0, 18)
 detectionSectionTitle.Position = UDim2.new(0, 8, 0, 8)
 detectionSectionTitle.BackgroundTransparency = 1
@@ -945,7 +947,7 @@ detectionSectionTitle.TextColor3 = Theme.TextPrimary
 detectionSectionTitle.TextXAlignment = Enum.TextXAlignment.Left
 detectionSectionTitle.Font = Enum.Font.GothamBold
 detectionSectionTitle.TextSize = 11
-detectionSectionTitle.Parent = detectionSection
+detectionSectionTitle.Parent = detectionSection end
 
 local rangeValueLabel = Instance.new("TextLabel")
 rangeValueLabel.Size = UDim2.new(1, -20, 0, 22)
@@ -981,7 +983,7 @@ rangeSliderKnob.BorderSizePixel = 0
 rangeSliderKnob.Parent = rangeSliderTrack
 mkCorner(rangeSliderKnob, 7)
 
-local rangeMinLabel = Instance.new("TextLabel")
+do local rangeMinLabel = Instance.new("TextLabel")
 rangeMinLabel.Size = UDim2.new(0, 28, 0, 16)
 rangeMinLabel.Position = UDim2.new(0, 10, 0, 70)
 rangeMinLabel.BackgroundTransparency = 1
@@ -991,7 +993,6 @@ rangeMinLabel.Font = Enum.Font.Gotham
 rangeMinLabel.TextSize = 10
 rangeMinLabel.TextXAlignment = Enum.TextXAlignment.Left
 rangeMinLabel.Parent = detectionSection
-
 local rangeMaxLabel = Instance.new("TextLabel")
 rangeMaxLabel.Size = UDim2.new(0, 40, 0, 16)
 rangeMaxLabel.Position = UDim2.new(1, -50, 0, 70)
@@ -1001,7 +1002,7 @@ rangeMaxLabel.TextColor3 = Theme.TextMuted
 rangeMaxLabel.Font = Enum.Font.Gotham
 rangeMaxLabel.TextSize = 10
 rangeMaxLabel.TextXAlignment = Enum.TextXAlignment.Right
-rangeMaxLabel.Parent = detectionSection
+rangeMaxLabel.Parent = detectionSection end
 
 local visualizeRangeBtn = Instance.new("TextButton")
 visualizeRangeBtn.Size = UDim2.new(0, 170, 0, 24)
@@ -1015,7 +1016,7 @@ visualizeRangeBtn.BorderSizePixel = 0
 visualizeRangeBtn.Parent = detectionSection
 mkCorner(visualizeRangeBtn, 4)
 
-local visualSettingsLabel = Instance.new("TextLabel")
+do local visualSettingsLabel = Instance.new("TextLabel")
 visualSettingsLabel.Size = UDim2.new(1, -20, 0, 20)
 visualSettingsLabel.Position = UDim2.new(0, 10, 0, 120)
 visualSettingsLabel.BackgroundTransparency = 1
@@ -1024,7 +1025,7 @@ visualSettingsLabel.TextColor3 = Theme.TextPrimary
 visualSettingsLabel.TextXAlignment = Enum.TextXAlignment.Left
 visualSettingsLabel.Font = Enum.Font.GothamBold
 visualSettingsLabel.TextSize = 11
-visualSettingsLabel.Parent = detectionSection
+visualSettingsLabel.Parent = detectionSection end
 
 local colorPreviewLabel = Instance.new("TextLabel")
 colorPreviewLabel.Size = UDim2.new(0, 48, 0, 16)
@@ -1072,7 +1073,7 @@ colorPreviewLabel.Parent = colorPickerFrame
 colorHexLabel.Parent = colorPickerFrame
 colorPreviewSwatch.Parent = colorPickerFrame
 
-local colorPickerTitle = Instance.new("TextLabel")
+do local colorPickerTitle = Instance.new("TextLabel")
 colorPickerTitle.Size = UDim2.new(1, -16, 0, 18)
 colorPickerTitle.Position = UDim2.new(0, 8, 0, 5)
 colorPickerTitle.BackgroundTransparency = 1
@@ -1083,7 +1084,6 @@ colorPickerTitle.Font = Enum.Font.GothamBold
 colorPickerTitle.TextSize = 10
 colorPickerTitle.ZIndex = 9
 colorPickerTitle.Parent = colorPickerFrame
-
 local hueLabel = Instance.new("TextLabel")
 hueLabel.Size = UDim2.new(0, 56, 0, 16)
 hueLabel.Position = UDim2.new(0, 8, 0, 24)
@@ -1094,7 +1094,7 @@ hueLabel.TextXAlignment = Enum.TextXAlignment.Left
 hueLabel.Font = Enum.Font.Gotham
 hueLabel.TextSize = 10
 hueLabel.ZIndex = 9
-hueLabel.Parent = colorPickerFrame
+hueLabel.Parent = colorPickerFrame end
 
 local hueValueLabel = Instance.new("TextLabel")
 hueValueLabel.Size = UDim2.new(0, 42, 0, 16)
@@ -1118,7 +1118,7 @@ hueTrack.ZIndex = 9
 hueTrack.Parent = colorPickerFrame
 mkCorner(hueTrack, 5)
 
-local hueGradient = Instance.new("UIGradient")
+do local hueGradient = Instance.new("UIGradient")
 hueGradient.Color = ColorSequence.new({
 	ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 0)),
 	ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 255, 0)),
@@ -1128,7 +1128,7 @@ hueGradient.Color = ColorSequence.new({
 	ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
 	ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 0)),
 })
-hueGradient.Parent = hueTrack
+hueGradient.Parent = hueTrack end
 
 local hueKnob = Instance.new("Frame")
 hueKnob.Size = UDim2.new(0, 12, 0, 12)
@@ -1781,7 +1781,7 @@ detailTitleBar.BorderSizePixel  = 0; detailTitleBar.Active = true
 detailTitleBar.Parent           = detailFrame
 mkCorner(detailTitleBar, 8)
 
-local detailTitleLabel = Instance.new("TextLabel")
+do local detailTitleLabel = Instance.new("TextLabel")
 detailTitleLabel.Size               = UDim2.new(1, -40, 1, 0)
 detailTitleLabel.Position           = UDim2.new(0, 12, 0, 0)
 detailTitleLabel.BackgroundTransparency = 1
@@ -1790,7 +1790,6 @@ detailTitleLabel.TextColor3         = Color3.fromRGB(230, 200, 255)
 detailTitleLabel.TextXAlignment     = Enum.TextXAlignment.Left
 detailTitleLabel.Font               = Enum.Font.GothamBold; detailTitleLabel.TextSize = 13
 detailTitleLabel.Parent             = detailTitleBar
-
 local animCloseBtn = Instance.new("TextButton")
 animCloseBtn.Size             = UDim2.new(0, 24, 0, 22)
 animCloseBtn.Position         = UDim2.new(1, -30, 0, 5)
@@ -1803,7 +1802,7 @@ animCloseBtn.BorderSizePixel  = 0; animCloseBtn.Parent = detailTitleBar
 mkCorner(animCloseBtn, 4)
 animCloseBtn.MouseEnter:Connect(function() animCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
 animCloseBtn.MouseLeave:Connect(function() animCloseBtn.BackgroundColor3 = Theme.ButtonDanger end)
-animCloseBtn.MouseButton1Click:Connect(function() detailFrame.Visible = false end)
+animCloseBtn.MouseButton1Click:Connect(function() detailFrame.Visible = false end) end
 
 local animDetailScroll = Instance.new("ScrollingFrame")
 animDetailScroll.Size               = UDim2.new(1, -16, 1, -82)
@@ -1913,7 +1912,7 @@ rdTitleLabel.Font               = Enum.Font.GothamBold; rdTitleLabel.TextSize = 
 rdTitleLabel.TextTruncate       = Enum.TextTruncate.AtEnd
 rdTitleLabel.Parent             = rdTitleBar
 
-local rdCloseBtn = Instance.new("TextButton")
+do local rdCloseBtn = Instance.new("TextButton")
 rdCloseBtn.Size             = UDim2.new(0, 24, 0, 22)
 rdCloseBtn.Position         = UDim2.new(1, -30, 0, 5)
 rdCloseBtn.BackgroundColor3 = Theme.ButtonDanger
@@ -1923,7 +1922,7 @@ rdCloseBtn.BorderSizePixel  = 0; rdCloseBtn.Parent = rdTitleBar
 mkCorner(rdCloseBtn, 4)
 rdCloseBtn.MouseEnter:Connect(function() rdCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
 rdCloseBtn.MouseLeave:Connect(function() rdCloseBtn.BackgroundColor3 = Theme.ButtonDanger end)
-rdCloseBtn.MouseButton1Click:Connect(function() remDetailFrame.Visible = false end)
+rdCloseBtn.MouseButton1Click:Connect(function() remDetailFrame.Visible = false end) end
 
 local rdScroll = Instance.new("ScrollingFrame")
 rdScroll.Size               = UDim2.new(1, -16, 1, -90)
@@ -2039,84 +2038,86 @@ spTitleBar.BorderSizePixel  = 0; spTitleBar.Active = true
 spTitleBar.Parent           = stateProbeFrame
 mkCorner(spTitleBar, 8)
 
-local spTitleLabel = Instance.new("TextLabel")
-spTitleLabel.Size               = UDim2.new(1, -100, 1, 0)
-spTitleLabel.Position           = UDim2.new(0, 12, 0, 0)
-spTitleLabel.BackgroundTransparency = 1
-spTitleLabel.Text               = "State Probe"
-spTitleLabel.TextColor3         = Color3.fromRGB(150, 220, 180)
-spTitleLabel.TextXAlignment     = Enum.TextXAlignment.Left
-spTitleLabel.Font               = Enum.Font.GothamBold; spTitleLabel.TextSize = 13
-spTitleLabel.TextTruncate       = Enum.TextTruncate.AtEnd
-spTitleLabel.Parent             = spTitleBar
-
-local spClearBtn = Instance.new("TextButton")
-spClearBtn.Size             = UDim2.new(0, 40, 0, 22)
-spClearBtn.Position         = UDim2.new(1, -48, 0, 5)
-spClearBtn.BackgroundColor3 = Color3.fromRGB(80, 100, 60)
-spClearBtn.Text             = "Clear"; spClearBtn.TextColor3 = Theme.TextPrimary
-spClearBtn.Font             = Enum.Font.GothamBold; spClearBtn.TextSize = 10
-spClearBtn.BorderSizePixel  = 0; spClearBtn.Parent = spTitleBar
-mkCorner(spClearBtn, 4)
-spClearBtn.MouseEnter:Connect(function() spClearBtn.BackgroundColor3 = Color3.fromRGB(120, 140, 80) end)
-spClearBtn.MouseLeave:Connect(function() spClearBtn.BackgroundColor3 = Color3.fromRGB(80, 100, 60) end)
-
-local spCloseBtn = Instance.new("TextButton")
-spCloseBtn.Size             = UDim2.new(0, 24, 0, 22)
-spCloseBtn.Position         = UDim2.new(1, -30, 0, 5)
-spCloseBtn.BackgroundColor3 = Theme.ButtonDanger
-spCloseBtn.Text             = "X"; spCloseBtn.TextColor3 = Theme.TextPrimary
-spCloseBtn.Font             = Enum.Font.GothamBold; spCloseBtn.TextSize = 12
-spCloseBtn.BorderSizePixel  = 0; spCloseBtn.Parent = spTitleBar
-mkCorner(spCloseBtn, 4)
-spCloseBtn.MouseEnter:Connect(function() spCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
-spCloseBtn.MouseLeave:Connect(function() spCloseBtn.BackgroundColor3 = Theme.ButtonDanger end)
-spCloseBtn.MouseButton1Click:Connect(function() stateProbeFrame.Visible = false end)
-
-local spScroll = Instance.new("ScrollingFrame")
-spScroll.Size               = UDim2.new(1, -16, 1, -50)
-spScroll.Position           = UDim2.new(0, 8, 0, 40)
-spScroll.BackgroundColor3   = Color3.fromRGB(12, 13, 18)
-spScroll.BorderSizePixel    = 0
-spScroll.ScrollBarThickness = 6
-spScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 120)
-spScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
-spScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
-pcall(function()
-	spScroll.ScrollingDirection = Enum.ScrollingDirection.X
-end)
-spScroll.Parent             = stateProbeFrame
-mkCorner(spScroll, 4)
-
-local spGridLayout = Instance.new("UIGridLayout", spScroll)
-spGridLayout.CellSize = UDim2.new(0, 190, 0, 50)
-spGridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-spGridLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-spGridLayout.StartCorner = Enum.StartCorner.TopLeft
 do
-	local spPad = Instance.new("UIPadding", spScroll)
-	spPad.PaddingTop = UDim.new(0,6)
-	spPad.PaddingBottom = UDim.new(0,8)
-	spPad.PaddingLeft = UDim.new(0,8)
-	spPad.PaddingRight = UDim.new(0,6)
-end
+	local spTitleLabel = Instance.new("TextLabel")
+	spTitleLabel.Size               = UDim2.new(1, -100, 1, 0)
+	spTitleLabel.Position           = UDim2.new(0, 12, 0, 0)
+	spTitleLabel.BackgroundTransparency = 1
+	spTitleLabel.Text               = "State Probe"
+	spTitleLabel.TextColor3         = Color3.fromRGB(150, 220, 180)
+	spTitleLabel.TextXAlignment     = Enum.TextXAlignment.Left
+	spTitleLabel.Font               = Enum.Font.GothamBold; spTitleLabel.TextSize = 13
+	spTitleLabel.TextTruncate       = Enum.TextTruncate.AtEnd
+	spTitleLabel.Parent             = spTitleBar
 
-stateProbeContainer = spScroll
+	local spClearBtn = Instance.new("TextButton")
+	spClearBtn.Size             = UDim2.new(0, 40, 0, 22)
+	spClearBtn.Position         = UDim2.new(1, -48, 0, 5)
+	spClearBtn.BackgroundColor3 = Color3.fromRGB(80, 100, 60)
+	spClearBtn.Text             = "Clear"; spClearBtn.TextColor3 = Theme.TextPrimary
+	spClearBtn.Font             = Enum.Font.GothamBold; spClearBtn.TextSize = 10
+	spClearBtn.BorderSizePixel  = 0; spClearBtn.Parent = spTitleBar
+	mkCorner(spClearBtn, 4)
+	spClearBtn.MouseEnter:Connect(function() spClearBtn.BackgroundColor3 = Color3.fromRGB(120, 140, 80) end)
+	spClearBtn.MouseLeave:Connect(function() spClearBtn.BackgroundColor3 = Color3.fromRGB(80, 100, 60) end)
 
-spClearBtn.MouseButton1Click:Connect(function()
-	stateProbeEntries = {}
-	spScroll:ClearAllChildren()
-	spGridLayout = Instance.new("UIGridLayout", spScroll)
+	local spCloseBtn = Instance.new("TextButton")
+	spCloseBtn.Size             = UDim2.new(0, 24, 0, 22)
+	spCloseBtn.Position         = UDim2.new(1, -30, 0, 5)
+	spCloseBtn.BackgroundColor3 = Theme.ButtonDanger
+	spCloseBtn.Text             = "X"; spCloseBtn.TextColor3 = Theme.TextPrimary
+	spCloseBtn.Font             = Enum.Font.GothamBold; spCloseBtn.TextSize = 12
+	spCloseBtn.BorderSizePixel  = 0; spCloseBtn.Parent = spTitleBar
+	mkCorner(spCloseBtn, 4)
+	spCloseBtn.MouseEnter:Connect(function() spCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
+	spCloseBtn.MouseLeave:Connect(function() spCloseBtn.BackgroundColor3 = Theme.ButtonDanger end)
+	spCloseBtn.MouseButton1Click:Connect(function() stateProbeFrame.Visible = false end)
+
+	local spScroll = Instance.new("ScrollingFrame")
+	spScroll.Size               = UDim2.new(1, -16, 1, -50)
+	spScroll.Position           = UDim2.new(0, 8, 0, 40)
+	spScroll.BackgroundColor3   = Color3.fromRGB(12, 13, 18)
+	spScroll.BorderSizePixel    = 0
+	spScroll.ScrollBarThickness = 6
+	spScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 120)
+	spScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
+	spScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
+	pcall(function()
+		spScroll.ScrollingDirection = Enum.ScrollingDirection.X
+	end)
+	spScroll.Parent             = stateProbeFrame
+	mkCorner(spScroll, 4)
+
+	local spGridLayout = Instance.new("UIGridLayout", spScroll)
 	spGridLayout.CellSize = UDim2.new(0, 190, 0, 50)
 	spGridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 	spGridLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 	spGridLayout.StartCorner = Enum.StartCorner.TopLeft
-	local spPad = Instance.new("UIPadding", spScroll)
-	spPad.PaddingTop = UDim.new(0,6)
-	spPad.PaddingBottom = UDim.new(0,8)
-	spPad.PaddingLeft = UDim.new(0,8)
-	spPad.PaddingRight = UDim.new(0,6)
-end)
+	do
+		local spPad = Instance.new("UIPadding", spScroll)
+		spPad.PaddingTop = UDim.new(0,6)
+		spPad.PaddingBottom = UDim.new(0,8)
+		spPad.PaddingLeft = UDim.new(0,8)
+		spPad.PaddingRight = UDim.new(0,6)
+	end
+
+	stateProbeContainer = spScroll
+
+	spClearBtn.MouseButton1Click:Connect(function()
+		stateProbeEntries = {}
+		spScroll:ClearAllChildren()
+		spGridLayout = Instance.new("UIGridLayout", spScroll)
+		spGridLayout.CellSize = UDim2.new(0, 190, 0, 50)
+		spGridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+		spGridLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+		spGridLayout.StartCorner = Enum.StartCorner.TopLeft
+		local spPad = Instance.new("UIPadding", spScroll)
+		spPad.PaddingTop = UDim.new(0,6)
+		spPad.PaddingBottom = UDim.new(0,8)
+		spPad.PaddingLeft = UDim.new(0,8)
+		spPad.PaddingRight = UDim.new(0,6)
+	end)
+end
 
 local spResizeGrip = Instance.new("TextButton")
 spResizeGrip.Size                   = UDim2.new(0, 16, 0, 16)
