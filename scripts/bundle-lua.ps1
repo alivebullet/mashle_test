@@ -12,7 +12,7 @@ function Fail([string]$Message) {
 }
 
 function To-Posix([string]$PathText) {
-    return $PathText.Replace('\\', '/')
+    return $PathText.Replace('\', '/')
 }
 
 function Remove-LuaExt([string]$PathText) {
@@ -83,7 +83,7 @@ function Visit([string]$ModuleId) {
         Fail "Missing file for module '$ModuleId': $abs"
     }
 
-    $code = Get-Content -Path $abs -Raw
+    $code = Get-Content -Path $abs -Raw -Encoding UTF8
     if ($code.Length -gt 0 -and [int][char]$code[0] -eq 65279) {
         $code = $code.Substring(1)
     }

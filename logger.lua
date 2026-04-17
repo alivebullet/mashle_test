@@ -1245,6 +1245,133 @@ local function cT(s, h)  return ('<font color="#%s">%s</font>'):format(h, s) end
 local function sec(name) return "\n"..cT("— "..name.." —", "5599DD").."\n" end
 local function safeGet(fn) local ok,r = pcall(fn); return ok and r or "N/A" end
 
+-- ========== LOCAL STATE PROBE ==========
+local stateProbeConnections = {}
+local stateProbeSeenInstances = setmetatable({}, { __mode = "k" })
+local stateProbeSeenValueObjects = setmetatable({}, { __mode = "k" })
+
+local function disconnectStateProbe()
+	for _, conn in ipairs(stateProbeConnections) do
+		conn:Disconnect()
+	end
+	stateProbeConnections = {}
+	stateProbeSeenInstances = setmetatable({}, { __mode = "k" })
+	stateProbeSeenValueObjects = setmetatable({}, { __mode = "k" })
+end
+
+local function bindStateProbe(signal, fn)
+	local conn = signal:Connect(fn)
+	table.insert(stateProbeConnections, conn)
+	return conn
+end
+
+local function getInstanceProbePath(root, instance)
+	local ok, result = pcall(function()
+		if not root or not instance then
+			return "?"
+		end
+
+		local parts = {}
+		local current = instance
+		while current and current ~= root do
+			table.insert(parts, 1, current.Name)
+			current = current.Parent
+		end
+
+		if current ~= root then
+			return instance:GetFullName()
+		end
+
+		table.insert(parts, 1, root.Name)
+		return table.concat(parts, "/")
+	end)
+
+	return ok and result or tostring(instance)
+end
+
+local function formatStateProbeValue(value)
+	local valueType = typeof(value)
+	if valueType == "Instance" then
+		return getRemotePath(value)
+	end
+
+	local ok, serialized = pcall(serializeArg, value)
+	if ok then
+		return serialized
+	end
+
+	return tostring(value)
+end
+
+local function stateProbeLog(root, eventName, instance, fieldName, value)
+	local path = getInstanceProbePath(root, instance)
+	print(("[StateProbe][%s] %s :: %s = %s"):format(
+		eventName,
+		path,
+		tostring(fieldName),
+		formatStateProbeValue(value)
+	))
+end
+
+local function watchStateProbeAttributes(root, instance, logExisting)
+	if stateProbeSeenInstances[instance] then return end
+	stateProbeSeenInstances[instance] = true
+
+	if logExisting then
+		local attributes = safeGet(function()
+			return instance:GetAttributes()
+		end)
+		if type(attributes) == "table" then
+			for name, value in pairs(attributes) do
+				stateProbeLog(root, "InitialAttribute", instance, name, value)
+			end
+		end
+	end
+
+	bindStateProbe(instance.AttributeChanged, function(name)
+		stateProbeLog(root, "AttributeChanged", instance, name, instance:GetAttribute(name))
+	end)
+end
+
+local function watchStateProbeValueObject(root, valueObject)
+	if stateProbeSeenValueObjects[valueObject] then return end
+	stateProbeSeenValueObjects[valueObject] = true
+
+	stateProbeLog(root, "InitialValue", valueObject, "Value", valueObject.Value)
+	bindStateProbe(valueObject:GetPropertyChangedSignal("Value"), function()
+		stateProbeLog(root, "ValueChanged", valueObject, "Value", valueObject.Value)
+	end)
+end
+
+local function watchLocalCharacterState(character)
+	disconnectStateProbe()
+	if not character then return end
+
+	print(("[StateProbe] Hooked %s"):format(getInstanceProbePath(character, character)))
+
+	local function inspectInstance(instance)
+		watchStateProbeAttributes(character, instance, true)
+		if instance:IsA("ValueBase") then
+			watchStateProbeValueObject(character, instance)
+		elseif instance:IsA("Humanoid") then
+			stateProbeLog(character, "InitialHumanoidState", instance, "HumanoidState", instance:GetState())
+			bindStateProbe(instance.StateChanged, function(_oldState, newState)
+				stateProbeLog(character, "HumanoidStateChanged", instance, "HumanoidState", newState)
+			end)
+		end
+	end
+
+	inspectInstance(character)
+	for _, instance in ipairs(character:GetDescendants()) do
+		inspectInstance(instance)
+	end
+
+	bindStateProbe(character.DescendantAdded, function(instance)
+		inspectInstance(instance)
+		stateProbeLog(character, "DescendantAdded", instance, "ClassName", instance.ClassName)
+	end)
+end
+
 -- ========== ANIMATION DETAIL PANEL ==========
 local detailFrame = Instance.new("Frame")
 detailFrame.Size             = UDim2.new(0, 360, 0, 420)
@@ -2737,6 +2864,14 @@ pcall(function()
 	workspace.DescendantAdded:Connect(function(d)
 		if d:IsA("Humanoid") then trackHumanoid(d) end
 	end)
+end)
+
+if localPlayer.Character then
+	watchLocalCharacterState(localPlayer.Character)
+end
+
+localPlayer.CharacterAdded:Connect(function(character)
+	watchLocalCharacterState(character)
 end)
 
 -- ========== REMOTE DETECTION ==========
