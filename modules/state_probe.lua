@@ -12,6 +12,13 @@ local function newWeakSet()
     return setmetatable({}, { __mode = "k" })
 end
 
+local function asArray(value)
+    if type(value) == "table" then
+        return value
+    end
+    return {}
+end
+
 local function getInstanceProbePath(root, instance)
     local result = safeGet(function()
         if not root or not instance then
@@ -69,10 +76,12 @@ local function stateProbeLog(root, eventName, instance, fieldName, value, callba
 end
 
 local function disconnectAll(connections)
-    for _, conn in ipairs(connections) do
+    for _, conn in ipairs(asArray(connections)) do
         conn:Disconnect()
     end
-    table.clear(connections)
+    if type(connections) == "table" then
+        table.clear(connections)
+    end
 end
 
 local function watchLocalCharacterState(character, state)

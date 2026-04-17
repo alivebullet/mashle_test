@@ -279,6 +279,13 @@ local function newWeakSet()
     return setmetatable({}, { __mode = "k" })
 end
 
+local function asArray(value)
+    if type(value) == "table" then
+        return value
+    end
+    return {}
+end
+
 local function getInstanceProbePath(root, instance)
     local result = safeGet(function()
         if not root or not instance then
@@ -336,10 +343,12 @@ local function stateProbeLog(root, eventName, instance, fieldName, value, callba
 end
 
 local function disconnectAll(connections)
-    for _, conn in ipairs(connections) do
+    for _, conn in ipairs(asArray(connections)) do
         conn:Disconnect()
     end
-    table.clear(connections)
+    if type(connections) == "table" then
+        table.clear(connections)
+    end
 end
 
 local function watchLocalCharacterState(character, state)
@@ -487,6 +496,13 @@ local tryClipboard = RemoteHelpers.tryClipboard
 local mkCorner = UIHelpers.mkCorner
 local function mkStroke(parent, color, thick)
 	UIHelpers.mkStroke(parent, Theme.StrokeColor, color, thick)
+end
+
+local function asArray(value)
+	if type(value) == "table" then
+		return value
+	end
+	return {}
 end
 
 -- State probe UI storage
@@ -2040,7 +2056,7 @@ mkCorner(spTitleBar, 8)
 
 do
 	local spTitleLabel = Instance.new("TextLabel")
-	spTitleLabel.Size               = UDim2.new(1, -100, 1, 0)
+	spTitleLabel.Size               = UDim2.new(1, -120, 1, 0)
 	spTitleLabel.Position           = UDim2.new(0, 12, 0, 0)
 	spTitleLabel.BackgroundTransparency = 1
 	spTitleLabel.Text               = "State Probe"
@@ -2052,7 +2068,7 @@ do
 
 	local spClearBtn = Instance.new("TextButton")
 	spClearBtn.Size             = UDim2.new(0, 40, 0, 22)
-	spClearBtn.Position         = UDim2.new(1, -48, 0, 5)
+	spClearBtn.Position         = UDim2.new(1, -74, 0, 5)
 	spClearBtn.BackgroundColor3 = Color3.fromRGB(80, 100, 60)
 	spClearBtn.Text             = "Clear"; spClearBtn.TextColor3 = Theme.TextPrimary
 	spClearBtn.Font             = Enum.Font.GothamBold; spClearBtn.TextSize = 10
@@ -2232,7 +2248,7 @@ local function showRemoteDetail(data)
 	if #data.args == 0 then
 		table.insert(argBlocks, cT("  (no arguments passed)", "666688"))
 	else
-		for i, v in ipairs(data.args) do
+		for i, v in ipairs(asArray(data.args)) do
 			local t = typeof(v)
 			local typeColor = TYPE_COLORS[t] or "AAAAAA"
 			local ok, serialized = pcall(deepSerializeArg, v, 0, "  ")
@@ -2372,7 +2388,7 @@ local function refreshAnimDetail()
 		if anim then
 			local ok, tracks = pcall(function() return anim:GetPlayingAnimationTracks() end)
 			if ok and tracks then
-				for _, t in ipairs(tracks) do
+				for _, t in ipairs(asArray(tracks)) do
 					table.insert(playingTracks,
 						("  • %s  [%s]"):format(t.Name~=""and t.Name or "Unnamed",
 						t.Animation and t.Animation.AnimationId or "?"))
@@ -2486,7 +2502,7 @@ local function addLogEntry(data)
 	if #children >= MAX_LOG_ENTRIES then
 		table.sort(children, function(a,b) return a.LayoutOrder < b.LayoutOrder end)
 		local oldest = children[1]
-		for i, e in ipairs(animEntries) do
+		for i, e in ipairs(asArray(animEntries)) do
 			if e.button == oldest then
 				table.remove(animEntries, i)
 				break
@@ -2541,7 +2557,7 @@ local remoteEntries = {}
 
 applyRemoteFilter = function()
 	local searchLower = remoteSearchText:lower()
-	for _, entryData in ipairs(remoteEntries) do
+	for _, entryData in ipairs(asArray(remoteEntries)) do
 		local btn = entryData.button
 		if btn then
 			local visible = true
@@ -2576,7 +2592,7 @@ local function addRemoteEntry(data)
 	if #children >= MAX_LOG_ENTRIES then
 		table.sort(children, function(a,b) return a.LayoutOrder < b.LayoutOrder end)
 		local oldest = children[1]
-		for i, e in ipairs(remoteEntries) do
+		for i, e in ipairs(asArray(remoteEntries)) do
 			if e.button == oldest then
 				table.remove(remoteEntries, i)
 				break
@@ -3222,7 +3238,7 @@ end)
 
 exportRemotesBtn.MouseButton1Click:Connect(function()
 	local lines = {}
-	for _, e in ipairs(remoteEntries) do
+	for _, e in ipairs(asArray(remoteEntries)) do
 		if e.button.Visible then
 			local data = e.data
 			if data then
@@ -3242,7 +3258,7 @@ end)
 
 exportAnimationsBtn.MouseButton1Click:Connect(function()
 	local lines = {}
-	for _, e in ipairs(animEntries) do
+	for _, e in ipairs(asArray(animEntries)) do
 		if e.button and e.button.Visible and e.data then
 			local data = e.data
 			local characterName = (data.character and data.character.Name) or "Unknown"
