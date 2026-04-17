@@ -132,7 +132,7 @@ titleBar.Parent           = mainFrame
 mkCorner(titleBar, 8)
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size               = UDim2.new(1, -250, 1, 0)
+titleLabel.Size               = UDim2.new(0, 210, 1, 0)
 titleLabel.Position           = UDim2.new(0, 12, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text               = "Combat & Remote Detector"
@@ -144,7 +144,7 @@ titleLabel.Parent             = titleBar
 
 local settingsBtn = Instance.new("TextButton")
 settingsBtn.Size             = UDim2.new(0, 24, 0, 22)
-settingsBtn.Position         = UDim2.new(1, -95, 0, 5)
+settingsBtn.Position         = UDim2.new(0, 228, 0, 5)
 settingsBtn.BackgroundColor3 = Theme.ButtonDefault
 settingsBtn.Text             = "⚙"
 settingsBtn.TextColor3       = Theme.TextPrimary
@@ -208,7 +208,7 @@ mkCorner(pauseRemotesBtn, 4)
 
 local probeBtn = Instance.new("TextButton")
 probeBtn.Size             = UDim2.new(0, 70, 0, 22)
-probeBtn.Position         = UDim2.new(1, -175, 0, 5)
+probeBtn.Position         = UDim2.new(0, 258, 0, 5)
 probeBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 80)
 probeBtn.Text             = "Probe"
 probeBtn.TextColor3       = Theme.TextPrimary
@@ -1722,23 +1722,26 @@ local function bindResize(grip, frame)
 	end
 end
 
-local dragCallbacks = {
-	bindDrag(titleBar,         mainFrame),
-	bindDrag(detailTitleBar,   detailFrame),
-	bindDrag(rdTitleBar,       remDetailFrame),
-	bindDrag(spTitleBar,       stateProbeFrame),
-}
-local resizeCallbacks = {
-	bindResize(resizeGrip,           mainFrame),
-	bindResize(animDetailResizeGrip, detailFrame),
-	bindResize(rdResizeGrip,         remDetailFrame),
-	bindResize(spResizeGrip,         stateProbeFrame),
-}
+local dragMainFrame = bindDrag(titleBar, mainFrame)
+local dragDetailFrame = bindDrag(detailTitleBar, detailFrame)
+local dragRemoteDetailFrame = bindDrag(rdTitleBar, remDetailFrame)
+local dragStateProbeFrame = bindDrag(spTitleBar, stateProbeFrame)
+
+local resizeMainFrame = bindResize(resizeGrip, mainFrame)
+local resizeDetailFrame = bindResize(animDetailResizeGrip, detailFrame)
+local resizeRemoteDetailFrame = bindResize(rdResizeGrip, remDetailFrame)
+local resizeStateProbeFrame = bindResize(spResizeGrip, stateProbeFrame)
 
 UserInputService.InputChanged:Connect(function(input)
 	if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
-	for _, fn in ipairs(dragCallbacks)   do fn(input.Position) end
-	for _, fn in ipairs(resizeCallbacks) do fn(input.Position) end
+	dragMainFrame(input.Position)
+	dragDetailFrame(input.Position)
+	dragRemoteDetailFrame(input.Position)
+	dragStateProbeFrame(input.Position)
+	resizeMainFrame(input.Position)
+	resizeDetailFrame(input.Position)
+	resizeRemoteDetailFrame(input.Position)
+	resizeStateProbeFrame(input.Position)
 end)
 
 
