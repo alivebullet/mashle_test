@@ -334,8 +334,6 @@ local function stateProbeLog(root, eventName, instance, fieldName, value, callba
     local valuePath = valueType == "Instance" and getRemotePath(value) or nil
     local msg = ("[StateProbe][%s] %s :: %s = %s"):format(eventName, path, fieldStr, valueStr)
 
-    print(msg)
-
     if callback then
         callback({
             eventName = eventName,
@@ -423,8 +421,6 @@ local function watchLocalCharacterState(character, state)
         end
     end
 
-    print(("[StateProbe] Hooked %s"):format(getInstanceProbePath(character, character)))
-
     inspectInstance(character)
     for _, instance in ipairs(character:GetDescendants()) do
         inspectInstance(instance)
@@ -499,8 +495,6 @@ local AnimationFilters = require("modules/animation_filters")
 local RemoteHelpers = require("modules/remote_helpers")
 local StateProbe = require("modules/state_probe")
 local UIHelpers = require("modules/ui_helpers")
-
-print("[Logger] Build " .. BUILD_TAG .. " loaded")
 
 local extractIdNumber = AnimationFilters.extractIdNumber
 local shouldLogAnimation = AnimationFilters.shouldLogAnimation
@@ -2749,8 +2743,7 @@ stateProbeView.copyAllBtn.MouseButton1Click:Connect(function()
 	if tryClipboard(payload) then
 		flashStateProbeBtn(stateProbeView.copyAllBtn, "Copied", "Copy Visible")
 	else
-		print("[StateProbe] Visible Entries:\n" .. payload)
-		flashStateProbeBtn(stateProbeView.copyAllBtn, "Printed", "Copy Visible")
+		flashStateProbeBtn(stateProbeView.copyAllBtn, "Clipboard Off", "Copy Visible")
 	end
 end)
 
@@ -2763,8 +2756,7 @@ stateProbeCopyPathBtn.MouseButton1Click:Connect(function()
 	if tryClipboard(path) then
 		flashStateProbeBtn(stateProbeCopyPathBtn, "Copied", "Copy Path")
 	else
-		print("[StateProbe] Path:", path)
-		flashStateProbeBtn(stateProbeCopyPathBtn, "Printed", "Copy Path")
+		flashStateProbeBtn(stateProbeCopyPathBtn, "Clipboard Off", "Copy Path")
 	end
 end)
 
@@ -2777,8 +2769,7 @@ stateProbeCopyValueBtn.MouseButton1Click:Connect(function()
 	if tryClipboard(value) then
 		flashStateProbeBtn(stateProbeCopyValueBtn, "Copied", "Copy Value")
 	else
-		print("[StateProbe] Value:", value)
-		flashStateProbeBtn(stateProbeCopyValueBtn, "Printed", "Copy Value")
+		flashStateProbeBtn(stateProbeCopyValueBtn, "Clipboard Off", "Copy Value")
 	end
 end)
 
@@ -2798,8 +2789,7 @@ stateProbeCopyLogBtn.MouseButton1Click:Connect(function()
 	if tryClipboard(payload) then
 		flashStateProbeBtn(stateProbeCopyLogBtn, "Copied", "Copy Log")
 	else
-		print("[StateProbe] Details:\n" .. payload)
-		flashStateProbeBtn(stateProbeCopyLogBtn, "Printed", "Copy Log")
+		flashStateProbeBtn(stateProbeCopyLogBtn, "Clipboard Off", "Copy Log")
 	end
 end)
 
@@ -2811,14 +2801,14 @@ rdCopyCodeBtn.MouseButton1Click:Connect(function()
 	if not selectedRemoteData then return end
 	local code = buildCode(selectedRemoteData.remote, selectedRemoteData.method, selectedRemoteData.argsStr)
 	if tryClipboard(code) then flashRd(rdCopyCodeBtn, "✔ Copied!", "📋 Copy Code")
-	else print("[RemoteSpy] Code:", code); flashRd(rdCopyCodeBtn, "Printed!", "📋 Copy Code") end
+	else flashRd(rdCopyCodeBtn, "Clipboard Off", "📋 Copy Code") end
 end)
 
 rdCopyPathBtn.MouseButton1Click:Connect(function()
 	if not selectedRemoteData then return end
 	local path = getRemotePath(selectedRemoteData.remote)
 	if tryClipboard(path) then flashRd(rdCopyPathBtn, "✔ Copied!", "🔗 Copy Path")
-	else print("[RemoteSpy] Path:", path); flashRd(rdCopyPathBtn, "Printed!", "🔗 Copy Path") end
+	else flashRd(rdCopyPathBtn, "Clipboard Off", "🔗 Copy Path") end
 end)
 
 rdRunCodeBtn.MouseButton1Click:Connect(function()
@@ -2843,7 +2833,6 @@ rdRunCodeBtn.MouseButton1Click:Connect(function()
 	if ok then
 		flashRd(rdRunCodeBtn, "✔ Done!", "▶ Run Code")
 	else
-		warn("[RemoteSpy] Runtime:", runErr)
 		flashRd(rdRunCodeBtn, "⚠ Error!", "▶ Run Code")
 	end
 end)
@@ -2982,9 +2971,17 @@ end)
 
 copyIdBtn.MouseButton1Click:Connect(function()
 	if currentAnimDetail then
-		print("[AnimDetect] ID:",      currentAnimDetail.animId)
-		print("[AnimDetect] Name:",    currentAnimDetail.animName)
-		print("[AnimDetect] Player:",  currentAnimDetail.character and currentAnimDetail.character.Name or "?")
+		local animId = currentAnimDetail.animId or ""
+		if tryClipboard(animId) then
+			copyIdBtn.Text = "Copied ID!"
+		else
+			copyIdBtn.Text = "Clipboard Off"
+		end
+		task.delay(1.3, function()
+			if copyIdBtn and copyIdBtn.Parent then
+				copyIdBtn.Text = "Print ID to Console"
+			end
+		end)
 	end
 end)
 refreshAnimBtn.MouseButton1Click:Connect(refreshAnimDetail)
@@ -3759,8 +3756,7 @@ exportRemotesBtn.MouseButton1Click:Connect(function()
 	if tryClipboard(exportText) then
 		flashRd(exportRemotesBtn, "✔ Exported!", "📤 Export")
 	else
-		print("[RemoteSpy] Exported logs:\n" .. exportText)
-		flashRd(exportRemotesBtn, "Printed!", "📤 Export")
+		flashRd(exportRemotesBtn, "Clipboard Off", "📤 Export")
 	end
 end)
 
@@ -3783,8 +3779,7 @@ exportAnimationsBtn.MouseButton1Click:Connect(function()
 	if tryClipboard(exportText) then
 		flashRd(exportAnimationsBtn, "✔ Exported!", "📤 Export")
 	else
-		print("[AnimDetect] Exported logs:\n" .. exportText)
-		flashRd(exportAnimationsBtn, "Printed!", "📤 Export")
+		flashRd(exportAnimationsBtn, "Clipboard Off", "📤 Export")
 	end
 end)
 
@@ -3797,13 +3792,13 @@ copyCodeBtn.MouseButton1Click:Connect(function()
 	if not selectedRemoteData then flashBtn(copyCodeBtn,"Select entry!","Copy Code"); return end
 	local code = buildCode(selectedRemoteData.remote, selectedRemoteData.method, selectedRemoteData.argsStr)
 	if tryClipboard(code) then flashBtn(copyCodeBtn,"Copied!","Copy Code")
-	else print("[RemoteSpy] Code:", code); flashBtn(copyCodeBtn,"Printed!","Copy Code") end
+	else flashBtn(copyCodeBtn,"Clipboard Off","Copy Code") end
 end)
 copyPathBtn.MouseButton1Click:Connect(function()
 	if not selectedRemoteData then flashBtn(copyPathBtn,"Select entry!","Copy Path"); return end
 	local path = getRemotePath(selectedRemoteData.remote)
 	if tryClipboard(path) then flashBtn(copyPathBtn,"Copied!","Copy Path")
-	else print("[RemoteSpy] Path:", path); flashBtn(copyPathBtn,"Printed!","Copy Path") end
+	else flashBtn(copyPathBtn,"Clipboard Off","Copy Path") end
 end)
 runCodeBtn.MouseButton1Click:Connect(function()
 	if not selectedRemoteData then flashBtn(runCodeBtn,"Select entry!","Run Code"); return end
@@ -3827,7 +3822,6 @@ runCodeBtn.MouseButton1Click:Connect(function()
 	if ok then
 		flashBtn(runCodeBtn,"Done!","Run Code")
 	else
-		warn("[RemoteSpy] Runtime:", re)
 		flashBtn(runCodeBtn,"Error!","Run Code")
 	end
 end)
@@ -3922,7 +3916,6 @@ local function setupRemoteSpy()
 	if type(hookmetamethod) ~= "function"
 		or type(newcclosure) ~= "function"
 		or type(getnamecallmethod) ~= "function" then
-		warn("[RemoteSpy] Required hook functions missing (hookmetamethod/newcclosure/getnamecallmethod).")
 		return
 	end
 
@@ -3973,12 +3966,9 @@ local function setupRemoteSpy()
 	end)
 
 	if not hookOk or type(hookResult) ~= "function" then
-		warn("[RemoteSpy] Failed to install __namecall hook safely.")
 		return
 	end
 	originalNamecall = hookResult
-
-	print("[RemoteSpy] __namecall hook active — remote logging enabled.")
 end
 
 if type(setupRemoteSpy) == "function" then

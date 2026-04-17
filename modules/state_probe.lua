@@ -67,8 +67,6 @@ local function stateProbeLog(root, eventName, instance, fieldName, value, callba
     local valuePath = valueType == "Instance" and getRemotePath(value) or nil
     local msg = ("[StateProbe][%s] %s :: %s = %s"):format(eventName, path, fieldStr, valueStr)
 
-    print(msg)
-
     if callback then
         callback({
             eventName = eventName,
@@ -155,8 +153,6 @@ local function watchLocalCharacterState(character, state)
             end)
         end
     end
-
-    print(("[StateProbe] Hooked %s"):format(getInstanceProbePath(character, character)))
 
     inspectInstance(character)
     for _, instance in ipairs(character:GetDescendants()) do
