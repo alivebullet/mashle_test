@@ -47,6 +47,15 @@ end
 -- State probe UI storage
 local stateProbeEntries = {}  -- Keyed by "path :: fieldName"
 local stateProbeContainer
+local stateProbeSelectedEntry
+local stateProbeSelectedEvent
+local stateProbeDetailFrame
+local stateProbeDetailTitle
+local stateProbeDetailBody
+local stateProbeCopyPathBtn
+local stateProbeCopyValueBtn
+local stateProbeCopyLogBtn
+local showStateProbeDetail
 
 local function onStateProbeEvent(event)
 	if not stateProbeContainer then return end
@@ -60,19 +69,39 @@ local function onStateProbeEvent(event)
 	stateProbeEntries[key] = event
 	
 	-- Create entry display
-	local entryLabel = Instance.new("TextLabel")
-	entryLabel.Size = UDim2.new(0, 180, 0, 40)
-	entryLabel.BackgroundColor3 = Color3.fromRGB(25, 35, 50)
-	entryLabel.BorderSizePixel = 0
-	entryLabel.Text = event.fieldName .. "\n" .. event.value
-	entryLabel.TextColor3 = Color3.fromRGB(180, 220, 255)
-	entryLabel.TextXAlignment = Enum.TextXAlignment.Center
-	entryLabel.TextYAlignment = Enum.TextYAlignment.Center
-	entryLabel.Font = Enum.Font.Gotham
-	entryLabel.TextSize = 10
-	entryLabel.Parent = stateProbeContainer
-	mkCorner(entryLabel, 4)
-	mkStroke(entryLabel, Color3.fromRGB(100, 150, 200), 1)
+	local entryButton = Instance.new("TextButton")
+	entryButton.Size = UDim2.new(0, 180, 0, 40)
+	entryButton.BackgroundColor3 = Color3.fromRGB(25, 35, 50)
+	entryButton.BorderSizePixel = 0
+	entryButton.AutoButtonColor = false
+	entryButton.Text = event.fieldName .. "\n" .. event.value
+	entryButton.TextColor3 = Color3.fromRGB(180, 220, 255)
+	entryButton.TextXAlignment = Enum.TextXAlignment.Left
+	entryButton.TextYAlignment = Enum.TextYAlignment.Center
+	entryButton.Font = Enum.Font.Gotham
+	entryButton.TextSize = 10
+	entryButton.TextWrapped = true
+	entryButton.Parent = stateProbeContainer
+	mkCorner(entryButton, 4)
+	mkStroke(entryButton, Color3.fromRGB(100, 150, 200), 1)
+
+	event.button = entryButton
+
+	entryButton.MouseEnter:Connect(function()
+		if stateProbeSelectedEntry ~= entryButton then
+			entryButton.BackgroundColor3 = Color3.fromRGB(35, 50, 70)
+		end
+	end)
+	entryButton.MouseLeave:Connect(function()
+		if stateProbeSelectedEntry ~= entryButton then
+			entryButton.BackgroundColor3 = Color3.fromRGB(25, 35, 50)
+		end
+	end)
+	entryButton.MouseButton1Click:Connect(function()
+		if showStateProbeDetail then
+			showStateProbeDetail(event)
+		end
+	end)
 end
 
 local watchLocalCharacterState = StateProbe.createWatcher(onStateProbeEvent)
@@ -1660,6 +1689,8 @@ do
 
 	spClearBtn.MouseButton1Click:Connect(function()
 		stateProbeEntries = {}
+		stateProbeSelectedEntry = nil
+		stateProbeSelectedEvent = nil
 		spScroll:ClearAllChildren()
 		spGridLayout = Instance.new("UIGridLayout", spScroll)
 		spGridLayout.CellSize = UDim2.new(0, 190, 0, 50)
@@ -1671,6 +1702,9 @@ do
 		spPad.PaddingBottom = UDim.new(0,8)
 		spPad.PaddingLeft = UDim.new(0,8)
 		spPad.PaddingRight = UDim.new(0,6)
+		if stateProbeDetailFrame then
+			stateProbeDetailFrame.Visible = false
+		end
 	end)
 end
 
@@ -1687,6 +1721,136 @@ spResizeGrip.Parent                 = stateProbeFrame
 mkCorner(spResizeGrip, 3)
 spResizeGrip.MouseEnter:Connect(function() spResizeGrip.BackgroundTransparency = 0   end)
 spResizeGrip.MouseLeave:Connect(function() spResizeGrip.BackgroundTransparency = 0.4 end)
+
+stateProbeDetailFrame = Instance.new("Frame")
+stateProbeDetailFrame.Name             = "StateProbeDetailFrame"
+stateProbeDetailFrame.Size             = UDim2.new(0, 390, 0, 360)
+stateProbeDetailFrame.Position         = UDim2.new(0, 450, 0, 570)
+stateProbeDetailFrame.BackgroundColor3 = Color3.fromRGB(20, 24, 32)
+stateProbeDetailFrame.BorderSizePixel  = 0
+stateProbeDetailFrame.Visible          = false
+stateProbeDetailFrame.Active           = true
+stateProbeDetailFrame.Parent           = screenGui
+mkCorner(stateProbeDetailFrame, 8)
+mkStroke(stateProbeDetailFrame, Color3.fromRGB(90, 140, 110))
+
+local spdTitleBar = Instance.new("Frame")
+spdTitleBar.Size             = UDim2.new(1, 0, 0, 32)
+spdTitleBar.BackgroundColor3 = Color3.fromRGB(32, 52, 42)
+spdTitleBar.BorderSizePixel  = 0
+spdTitleBar.Active           = true
+spdTitleBar.Parent           = stateProbeDetailFrame
+mkCorner(spdTitleBar, 8)
+
+stateProbeDetailTitle = Instance.new("TextLabel")
+stateProbeDetailTitle.Size               = UDim2.new(1, -44, 1, 0)
+stateProbeDetailTitle.Position           = UDim2.new(0, 12, 0, 0)
+stateProbeDetailTitle.BackgroundTransparency = 1
+stateProbeDetailTitle.Text               = "Probe Details"
+stateProbeDetailTitle.TextColor3         = Color3.fromRGB(180, 230, 200)
+stateProbeDetailTitle.TextXAlignment     = Enum.TextXAlignment.Left
+stateProbeDetailTitle.Font               = Enum.Font.GothamBold
+stateProbeDetailTitle.TextSize           = 13
+stateProbeDetailTitle.TextTruncate       = Enum.TextTruncate.AtEnd
+stateProbeDetailTitle.Parent             = spdTitleBar
+
+do local spdCloseBtn = Instance.new("TextButton")
+	spdCloseBtn.Size             = UDim2.new(0, 24, 0, 22)
+	spdCloseBtn.Position         = UDim2.new(1, -30, 0, 5)
+	spdCloseBtn.BackgroundColor3 = Theme.ButtonDanger
+	spdCloseBtn.Text             = "X"
+	spdCloseBtn.TextColor3       = Theme.TextPrimary
+	spdCloseBtn.Font             = Enum.Font.GothamBold
+	spdCloseBtn.TextSize         = 12
+	spdCloseBtn.BorderSizePixel  = 0
+	spdCloseBtn.Parent           = spdTitleBar
+	mkCorner(spdCloseBtn, 4)
+	spdCloseBtn.MouseEnter:Connect(function() spdCloseBtn.BackgroundColor3 = Color3.fromRGB(220,80,80) end)
+	spdCloseBtn.MouseLeave:Connect(function() spdCloseBtn.BackgroundColor3 = Theme.ButtonDanger end)
+	spdCloseBtn.MouseButton1Click:Connect(function() stateProbeDetailFrame.Visible = false end)
+end
+
+local spdScroll = Instance.new("ScrollingFrame")
+spdScroll.Size               = UDim2.new(1, -16, 1, -90)
+spdScroll.Position           = UDim2.new(0, 8, 0, 40)
+spdScroll.BackgroundColor3   = Color3.fromRGB(12, 13, 18)
+spdScroll.BorderSizePixel    = 0
+spdScroll.ScrollBarThickness = 6
+spdScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 120)
+spdScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
+spdScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+spdScroll.Parent             = stateProbeDetailFrame
+mkCorner(spdScroll, 4)
+do
+	local spdPad = Instance.new("UIPadding", spdScroll)
+	spdPad.PaddingTop = UDim.new(0,6)
+	spdPad.PaddingBottom = UDim.new(0,8)
+	spdPad.PaddingLeft = UDim.new(0,8)
+	spdPad.PaddingRight = UDim.new(0,6)
+end
+
+stateProbeDetailBody = Instance.new("TextLabel")
+stateProbeDetailBody.Size               = UDim2.new(1, 0, 0, 0)
+stateProbeDetailBody.AutomaticSize      = Enum.AutomaticSize.Y
+stateProbeDetailBody.BackgroundTransparency = 1
+stateProbeDetailBody.Text               = ""
+stateProbeDetailBody.TextColor3         = Color3.fromRGB(210, 220, 235)
+stateProbeDetailBody.TextXAlignment     = Enum.TextXAlignment.Left
+stateProbeDetailBody.TextYAlignment     = Enum.TextYAlignment.Top
+stateProbeDetailBody.Font               = Enum.Font.Code
+stateProbeDetailBody.TextSize           = 11
+stateProbeDetailBody.TextWrapped        = true
+stateProbeDetailBody.Parent             = spdScroll
+
+local spdBtnBar = Instance.new("Frame")
+spdBtnBar.Size             = UDim2.new(1, -16, 0, 38)
+spdBtnBar.Position         = UDim2.new(0, 8, 1, -44)
+spdBtnBar.BackgroundColor3 = Color3.fromRGB(18, 24, 36)
+spdBtnBar.BorderSizePixel  = 0
+spdBtnBar.Parent           = stateProbeDetailFrame
+mkCorner(spdBtnBar, 5)
+mkStroke(spdBtnBar, Color3.fromRGB(60, 90, 80))
+
+do
+	local function makeProbeBtn(label, color, idx, total)
+		local w = 1 / total
+		local btn = Instance.new("TextButton")
+		btn.Size             = UDim2.new(w, -5, 1, -10)
+		btn.Position         = UDim2.new(w*(idx-1), (idx == 1 and 5 or 3), 0, 5)
+		btn.BackgroundColor3 = color
+		btn.Text             = label
+		btn.TextColor3       = Theme.TextPrimary
+		btn.Font             = Enum.Font.Gotham
+		btn.TextSize         = 10
+		btn.BorderSizePixel  = 0
+		btn.AutoButtonColor  = false
+		btn.Parent           = spdBtnBar
+		mkCorner(btn, 4)
+		btn.MouseEnter:Connect(function() btn.BackgroundTransparency = 0.25 end)
+		btn.MouseLeave:Connect(function() btn.BackgroundTransparency = 0 end)
+		return btn
+	end
+
+	stateProbeCopyPathBtn  = makeProbeBtn("Copy Path",  Color3.fromRGB(40, 105, 70), 1, 3)
+	stateProbeCopyValueBtn = makeProbeBtn("Copy Value", Color3.fromRGB(48, 88, 150), 2, 3)
+	stateProbeCopyLogBtn   = makeProbeBtn("Copy Log",   Color3.fromRGB(110, 80, 40), 3, 3)
+end
+
+local spdResizeGrip = Instance.new("TextButton")
+spdResizeGrip.Size                   = UDim2.new(0, 16, 0, 16)
+spdResizeGrip.Position               = UDim2.new(1, -18, 1, -18)
+spdResizeGrip.BackgroundColor3       = Color3.fromRGB(100, 150, 120)
+spdResizeGrip.BackgroundTransparency = 0.4
+spdResizeGrip.Text                   = "⇲"
+spdResizeGrip.TextColor3             = Color3.fromRGB(200, 245, 220)
+spdResizeGrip.Font                   = Enum.Font.GothamBold
+spdResizeGrip.TextSize               = 12
+spdResizeGrip.BorderSizePixel        = 0
+spdResizeGrip.AutoButtonColor        = false
+spdResizeGrip.Parent                 = stateProbeDetailFrame
+mkCorner(spdResizeGrip, 3)
+spdResizeGrip.MouseEnter:Connect(function() spdResizeGrip.BackgroundTransparency = 0 end)
+spdResizeGrip.MouseLeave:Connect(function() spdResizeGrip.BackgroundTransparency = 0.4 end)
 
 -- ========== DRAG / RESIZE ==========
 local function bindDrag(bar, frame)
@@ -1739,11 +1903,13 @@ do
 	local dragDetailFrame = bindDrag(detailTitleBar, detailFrame)
 	local dragRemoteDetailFrame = bindDrag(rdTitleBar, remDetailFrame)
 	local dragStateProbeFrame = bindDrag(spTitleBar, stateProbeFrame)
+	local dragStateProbeDetailFrame = bindDrag(spdTitleBar, stateProbeDetailFrame)
 
 	local resizeMainFrame = bindResize(resizeGrip, mainFrame, 560, 360)
 	local resizeDetailFrame = bindResize(animDetailResizeGrip, detailFrame, 360, 420)
 	local resizeRemoteDetailFrame = bindResize(rdResizeGrip, remDetailFrame, 390, 480)
 	local resizeStateProbeFrame = bindResize(spResizeGrip, stateProbeFrame, 420, 480)
+	local resizeStateProbeDetailFrame = bindResize(spdResizeGrip, stateProbeDetailFrame, 390, 360)
 
 	UserInputService.InputChanged:Connect(function(input)
 		if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
@@ -1751,10 +1917,12 @@ do
 		dragDetailFrame(input.Position)
 		dragRemoteDetailFrame(input.Position)
 		dragStateProbeFrame(input.Position)
+		dragStateProbeDetailFrame(input.Position)
 		resizeMainFrame(input.Position)
 		resizeDetailFrame(input.Position)
 		resizeRemoteDetailFrame(input.Position)
 		resizeStateProbeFrame(input.Position)
+		resizeStateProbeDetailFrame(input.Position)
 	end)
 end
 
@@ -1837,6 +2005,101 @@ local function showRemoteDetail(data)
 		rdPauseBtn.BackgroundColor3 = Color3.fromRGB(130, 48, 48)
 	end
 end
+
+local function flashStateProbeBtn(btn, msg, orig)
+	btn.Text = msg
+	task.delay(1.3, function()
+		if btn and btn.Parent then
+			btn.Text = orig
+		end
+	end)
+end
+
+showStateProbeDetail = function(event)
+	if stateProbeSelectedEntry and stateProbeSelectedEntry ~= event.button then
+		stateProbeSelectedEntry.BackgroundColor3 = Color3.fromRGB(25, 35, 50)
+	end
+
+	stateProbeSelectedEvent = event
+	stateProbeSelectedEntry = event.button
+	if stateProbeSelectedEntry then
+		stateProbeSelectedEntry.BackgroundColor3 = Color3.fromRGB(55, 85, 65)
+	end
+
+	stateProbeDetailFrame.Visible = true
+	stateProbeDetailTitle.Text = (event.fieldName or "Probe") .. " Details"
+
+	local lines = {
+		("Event: %s"):format(event.eventName or "?"),
+		("Field: %s"):format(event.fieldName or "?"),
+		("Instance: %s"):format(event.instanceName or "?"),
+		("Class: %s"):format(event.instanceClassName or "?"),
+		("Parent: %s"):format(event.parentName or "nil"),
+		("Relative Path: %s"):format(event.path or "?"),
+		("Full Path: %s"):format(event.fullPath or event.path or "?"),
+		("Value Type: %s"):format(event.valueType or "?"),
+		("Value: %s"):format(event.value or "nil"),
+	}
+
+	if event.valuePath then
+		lines[#lines + 1] = ("Value Path: %s"):format(event.valuePath)
+	end
+
+	lines[#lines + 1] = ""
+	lines[#lines + 1] = "Log Line:"
+	lines[#lines + 1] = event.message or ""
+
+	stateProbeDetailBody.Text = table.concat(lines, "\n")
+end
+
+stateProbeCopyPathBtn.MouseButton1Click:Connect(function()
+	if not stateProbeSelectedEvent then
+		flashStateProbeBtn(stateProbeCopyPathBtn, "Select One", "Copy Path")
+		return
+	end
+	local path = stateProbeSelectedEvent.fullPath or stateProbeSelectedEvent.path or ""
+	if tryClipboard(path) then
+		flashStateProbeBtn(stateProbeCopyPathBtn, "Copied", "Copy Path")
+	else
+		print("[StateProbe] Path:", path)
+		flashStateProbeBtn(stateProbeCopyPathBtn, "Printed", "Copy Path")
+	end
+end)
+
+stateProbeCopyValueBtn.MouseButton1Click:Connect(function()
+	if not stateProbeSelectedEvent then
+		flashStateProbeBtn(stateProbeCopyValueBtn, "Select One", "Copy Value")
+		return
+	end
+	local value = stateProbeSelectedEvent.value or ""
+	if tryClipboard(value) then
+		flashStateProbeBtn(stateProbeCopyValueBtn, "Copied", "Copy Value")
+	else
+		print("[StateProbe] Value:", value)
+		flashStateProbeBtn(stateProbeCopyValueBtn, "Printed", "Copy Value")
+	end
+end)
+
+stateProbeCopyLogBtn.MouseButton1Click:Connect(function()
+	if not stateProbeSelectedEvent then
+		flashStateProbeBtn(stateProbeCopyLogBtn, "Select One", "Copy Log")
+		return
+	end
+	local event = stateProbeSelectedEvent
+	local payload = table.concat({
+		("Event: %s"):format(event.eventName or "?"),
+		("Field: %s"):format(event.fieldName or "?"),
+		("Path: %s"):format(event.fullPath or event.path or "?"),
+		("Value: %s"):format(event.value or "nil"),
+		event.message or "",
+	}, "\n")
+	if tryClipboard(payload) then
+		flashStateProbeBtn(stateProbeCopyLogBtn, "Copied", "Copy Log")
+	else
+		print("[StateProbe] Details:\n" .. payload)
+		flashStateProbeBtn(stateProbeCopyLogBtn, "Printed", "Copy Log")
+	end
+end)
 
 local function flashRd(btn, msg, orig)
 	btn.Text = msg; task.delay(1.3, function() btn.Text = orig end)

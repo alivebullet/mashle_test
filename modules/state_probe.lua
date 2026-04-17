@@ -58,8 +58,13 @@ end
 
 local function stateProbeLog(root, eventName, instance, fieldName, value, callback)
     local path = getInstanceProbePath(root, instance)
+    local fullPath = safeGet(function()
+        return instance:GetFullName()
+    end) or path
     local fieldStr = tostring(fieldName)
+    local valueType = typeof(value)
     local valueStr = formatStateProbeValue(value)
+    local valuePath = valueType == "Instance" and getRemotePath(value) or nil
     local msg = ("[StateProbe][%s] %s :: %s = %s"):format(eventName, path, fieldStr, valueStr)
 
     print(msg)
@@ -68,8 +73,18 @@ local function stateProbeLog(root, eventName, instance, fieldName, value, callba
         callback({
             eventName = eventName,
             path = path,
+            fullPath = fullPath,
             fieldName = fieldStr,
             value = valueStr,
+            rawValue = value,
+            valueType = valueType,
+            valuePath = valuePath,
+            instance = instance,
+            instanceName = safeGet(function() return instance.Name end) or tostring(instance),
+            instanceClassName = safeGet(function() return instance.ClassName end) or typeof(instance),
+            parentName = safeGet(function()
+                return instance.Parent and instance.Parent.Name or "nil"
+            end) or "nil",
             message = msg,
         })
     end
