@@ -533,6 +533,13 @@ local stateProbeCopyValueBtn
 local stateProbeCopyLogBtn
 local showStateProbeDetail
 
+local function getStateProbeEntryLabel(event)
+	if event.fieldName == "Value" and event.instanceName and event.instanceName ~= "" then
+		return event.instanceName
+	end
+	return event.fieldName or "Unknown"
+end
+
 local function onStateProbeEvent(event)
 	if not stateProbeContainer then return end
 	
@@ -543,6 +550,7 @@ local function onStateProbeEvent(event)
 	if stateProbeEntries[key] then return end
 	
 	stateProbeEntries[key] = event
+	event.displayLabel = getStateProbeEntryLabel(event)
 	
 	-- Create entry display
 	local entryButton = Instance.new("TextButton")
@@ -550,7 +558,7 @@ local function onStateProbeEvent(event)
 	entryButton.BackgroundColor3 = Color3.fromRGB(25, 35, 50)
 	entryButton.BorderSizePixel = 0
 	entryButton.AutoButtonColor = false
-	entryButton.Text = event.fieldName .. "\n" .. event.value
+	entryButton.Text = event.displayLabel .. " = " .. event.value
 	entryButton.TextColor3 = Color3.fromRGB(180, 220, 255)
 	entryButton.TextXAlignment = Enum.TextXAlignment.Left
 	entryButton.TextYAlignment = Enum.TextYAlignment.Center
@@ -2503,7 +2511,7 @@ showStateProbeDetail = function(event)
 	end
 
 	stateProbeDetailFrame.Visible = true
-	stateProbeDetailTitle.Text = (event.fieldName or "Probe") .. " Details"
+	stateProbeDetailTitle.Text = (event.displayLabel or event.fieldName or "Probe") .. " Details"
 
 	local lines = {
 		("Event: %s"):format(event.eventName or "?"),
