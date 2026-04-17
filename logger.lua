@@ -1822,9 +1822,9 @@ do
 	spScroll.ScrollBarThickness = 6
 	spScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 120)
 	spScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
-	spScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
+	spScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	pcall(function()
-		spScroll.ScrollingDirection = Enum.ScrollingDirection.X
+		spScroll.ScrollingDirection = Enum.ScrollingDirection.Y
 	end)
 	spScroll.Parent             = stateProbeFrame
 	mkCorner(spScroll, 4)
