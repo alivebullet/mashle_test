@@ -1722,27 +1722,29 @@ local function bindResize(grip, frame)
 	end
 end
 
-local dragMainFrame = bindDrag(titleBar, mainFrame)
-local dragDetailFrame = bindDrag(detailTitleBar, detailFrame)
-local dragRemoteDetailFrame = bindDrag(rdTitleBar, remDetailFrame)
-local dragStateProbeFrame = bindDrag(spTitleBar, stateProbeFrame)
+do
+	local dragMainFrame = bindDrag(titleBar, mainFrame)
+	local dragDetailFrame = bindDrag(detailTitleBar, detailFrame)
+	local dragRemoteDetailFrame = bindDrag(rdTitleBar, remDetailFrame)
+	local dragStateProbeFrame = bindDrag(spTitleBar, stateProbeFrame)
 
-local resizeMainFrame = bindResize(resizeGrip, mainFrame)
-local resizeDetailFrame = bindResize(animDetailResizeGrip, detailFrame)
-local resizeRemoteDetailFrame = bindResize(rdResizeGrip, remDetailFrame)
-local resizeStateProbeFrame = bindResize(spResizeGrip, stateProbeFrame)
+	local resizeMainFrame = bindResize(resizeGrip, mainFrame)
+	local resizeDetailFrame = bindResize(animDetailResizeGrip, detailFrame)
+	local resizeRemoteDetailFrame = bindResize(rdResizeGrip, remDetailFrame)
+	local resizeStateProbeFrame = bindResize(spResizeGrip, stateProbeFrame)
 
-UserInputService.InputChanged:Connect(function(input)
-	if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
-	dragMainFrame(input.Position)
-	dragDetailFrame(input.Position)
-	dragRemoteDetailFrame(input.Position)
-	dragStateProbeFrame(input.Position)
-	resizeMainFrame(input.Position)
-	resizeDetailFrame(input.Position)
-	resizeRemoteDetailFrame(input.Position)
-	resizeStateProbeFrame(input.Position)
-end)
+	UserInputService.InputChanged:Connect(function(input)
+		if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
+		dragMainFrame(input.Position)
+		dragDetailFrame(input.Position)
+		dragRemoteDetailFrame(input.Position)
+		dragStateProbeFrame(input.Position)
+		resizeMainFrame(input.Position)
+		resizeDetailFrame(input.Position)
+		resizeRemoteDetailFrame(input.Position)
+		resizeStateProbeFrame(input.Position)
+	end)
+end
 
 
 -- ========== REMOTE DETAIL VIEW ==========
