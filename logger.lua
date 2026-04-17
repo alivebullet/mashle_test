@@ -47,8 +47,21 @@ end
 -- State probe UI storage
 local stateProbeEntries = {}  -- Keyed by "path :: fieldName"
 local stateProbeView = {
-	filterTypes = { "All", "boolean", "number", "string", "Instance", "EnumItem", "table", "Vector3", "Vector2", "CFrame", "Color3" },
-	filterIndex = 1,
+	filterTypes = {
+		{ label = "All", value = "All" },
+		{ label = "Bool", value = "boolean" },
+		{ label = "Num", value = "number" },
+		{ label = "Str", value = "string" },
+		{ label = "Inst", value = "Instance" },
+		{ label = "Enum", value = "EnumItem" },
+		{ label = "Tbl", value = "table" },
+		{ label = "Vec3", value = "Vector3" },
+		{ label = "Vec2", value = "Vector2" },
+		{ label = "CF", value = "CFrame" },
+		{ label = "Clr", value = "Color3" },
+	},
+	selectedFilter = "All",
+	searchText = "",
 	nextOrder = 0,
 }
 local stateProbeContainer
@@ -64,17 +77,27 @@ local showStateProbeDetail
 local flashStateProbeBtn
 
 local function getStateProbeFilterType()
-	return stateProbeView.filterTypes[stateProbeView.filterIndex] or "All"
-end
-
-local function getStateProbeFilterLabel()
-	local filterType = getStateProbeFilterType()
-	return filterType == "All" and "Filter: All" or ("Filter: " .. filterType)
+	return stateProbeView.selectedFilter or "All"
 end
 
 local function stateProbeMatchesFilter(event)
 	local filterType = getStateProbeFilterType()
-	return filterType == "All" or event.valueType == filterType
+	if filterType ~= "All" and event.valueType ~= filterType then
+		return false
+	end
+
+	local search = string.lower(stateProbeView.searchText or "")
+	if search == "" then
+		return true
+	end
+
+	local haystack = string.lower(table.concat({
+		event.displayLabel or "",
+		event.path or "",
+		event.fullPath or "",
+		event.value or "",
+	}, " "))
+	return string.find(haystack, search, 1, true) ~= nil
 end
 
 local function applyStateProbeFilter()
@@ -83,8 +106,10 @@ local function applyStateProbeFilter()
 			event.button.Visible = stateProbeMatchesFilter(event)
 		end
 	end
-	if stateProbeView.filterBtn then
-		stateProbeView.filterBtn.Text = getStateProbeFilterLabel()
+	for _, chip in ipairs(asArray(stateProbeView.filterChips)) do
+		local active = chip.filterValue == getStateProbeFilterType()
+		chip.BackgroundColor3 = active and Color3.fromRGB(70, 120, 95) or Color3.fromRGB(42, 56, 72)
+		chip.TextColor3 = active and Color3.fromRGB(240, 255, 245) or Theme.TextPrimary
 	end
 end
 
@@ -1668,7 +1693,7 @@ mkCorner(spTitleBar, 8)
 
 do
 	local spTitleLabel = Instance.new("TextLabel")
-	spTitleLabel.Size               = UDim2.new(1, -236, 1, 0)
+	spTitleLabel.Size               = UDim2.new(1, -88, 1, 0)
 	spTitleLabel.Position           = UDim2.new(0, 12, 0, 0)
 	spTitleLabel.BackgroundTransparency = 1
 	spTitleLabel.Text               = "State Probe"
@@ -1678,25 +1703,6 @@ do
 	spTitleLabel.TextTruncate       = Enum.TextTruncate.AtEnd
 	spTitleLabel.ZIndex             = 1
 	spTitleLabel.Parent             = spTitleBar
-
-	local spFilterBtn = Instance.new("TextButton")
-	spFilterBtn.Size             = UDim2.new(0, 96, 0, 22)
-	spFilterBtn.Position         = UDim2.new(1, -188, 0, 5)
-	spFilterBtn.BackgroundColor3 = Color3.fromRGB(50, 80, 95)
-	spFilterBtn.Text             = getStateProbeFilterLabel()
-	spFilterBtn.TextColor3       = Theme.TextPrimary
-	spFilterBtn.Font             = Enum.Font.GothamBold; spFilterBtn.TextSize = 9
-	spFilterBtn.BorderSizePixel  = 0; spFilterBtn.Parent = spTitleBar
-	spFilterBtn.TextTruncate     = Enum.TextTruncate.AtEnd
-	spFilterBtn.ZIndex           = 3
-	mkCorner(spFilterBtn, 4)
-	spFilterBtn.MouseEnter:Connect(function() spFilterBtn.BackgroundColor3 = Color3.fromRGB(70, 100, 120) end)
-	spFilterBtn.MouseLeave:Connect(function() spFilterBtn.BackgroundColor3 = Color3.fromRGB(50, 80, 95) end)
-	spFilterBtn.MouseButton1Click:Connect(function()
-		stateProbeView.filterIndex = (stateProbeView.filterIndex % #stateProbeView.filterTypes) + 1
-		applyStateProbeFilter()
-	end)
-	stateProbeView.filterBtn = spFilterBtn
 
 	local spClearBtn = Instance.new("TextButton")
 	spClearBtn.Size             = UDim2.new(0, 40, 0, 22)
@@ -1723,9 +1729,91 @@ do
 	spCloseBtn.MouseLeave:Connect(function() spCloseBtn.BackgroundColor3 = Theme.ButtonDanger end)
 	spCloseBtn.MouseButton1Click:Connect(function() stateProbeFrame.Visible = false end)
 
+	local spSearchBox = Instance.new("TextBox")
+	spSearchBox.Size               = UDim2.new(1, -16, 0, 24)
+	spSearchBox.Position           = UDim2.new(0, 8, 0, 38)
+	spSearchBox.BackgroundColor3   = Color3.fromRGB(24, 30, 40)
+	spSearchBox.BorderSizePixel    = 0
+	spSearchBox.PlaceholderText    = "Search name or path..."
+	spSearchBox.PlaceholderColor3  = Color3.fromRGB(145, 150, 160)
+	spSearchBox.Text               = ""
+	spSearchBox.TextColor3         = Theme.TextPrimary
+	spSearchBox.Font               = Enum.Font.Gotham
+	spSearchBox.TextSize           = 10
+	spSearchBox.ClearTextOnFocus   = false
+	spSearchBox.Parent             = stateProbeFrame
+	spSearchBox.ZIndex             = 2
+	mkCorner(spSearchBox, 4)
+	stateProbeView.searchBox = spSearchBox
+
+	local spChipScroll = Instance.new("ScrollingFrame")
+	spChipScroll.Size               = UDim2.new(1, -16, 0, 28)
+	spChipScroll.Position           = UDim2.new(0, 8, 0, 68)
+	spChipScroll.BackgroundTransparency = 1
+	spChipScroll.BorderSizePixel    = 0
+	spChipScroll.ScrollBarThickness = 4
+	spChipScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 120)
+	spChipScroll.CanvasSize         = UDim2.new(0, 0, 0, 0)
+	spChipScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
+	pcall(function()
+		spChipScroll.ScrollingDirection = Enum.ScrollingDirection.X
+	end)
+	spChipScroll.Parent             = stateProbeFrame
+	spChipScroll.ZIndex             = 2
+
+	do
+		local chipLayout = Instance.new("UIListLayout")
+		chipLayout.FillDirection = Enum.FillDirection.Horizontal
+		chipLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+		chipLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+		chipLayout.Padding = UDim.new(0, 6)
+		chipLayout.Parent = spChipScroll
+		local chipPad = Instance.new("UIPadding")
+		chipPad.PaddingLeft = UDim.new(0, 2)
+		chipPad.PaddingRight = UDim.new(0, 2)
+		chipPad.Parent = spChipScroll
+	end
+
+	stateProbeView.filterChips = {}
+	for _, filter in ipairs(stateProbeView.filterTypes) do
+		local chip = Instance.new("TextButton")
+		chip.Size = UDim2.new(0, math.max(42, 14 + (#filter.label * 7)), 0, 22)
+		chip.BackgroundColor3 = Color3.fromRGB(42, 56, 72)
+		chip.BorderSizePixel = 0
+		chip.AutoButtonColor = false
+		chip.Text = filter.label
+		chip.TextColor3 = Theme.TextPrimary
+		chip.Font = Enum.Font.GothamBold
+		chip.TextSize = 9
+		chip.ZIndex = 3
+		chip.Parent = spChipScroll
+		chip.filterValue = filter.value
+		mkCorner(chip, 4)
+		chip.MouseEnter:Connect(function()
+			if stateProbeView.selectedFilter ~= chip.filterValue then
+				chip.BackgroundColor3 = Color3.fromRGB(58, 76, 96)
+			end
+		end)
+		chip.MouseLeave:Connect(function()
+			if stateProbeView.selectedFilter ~= chip.filterValue then
+				chip.BackgroundColor3 = Color3.fromRGB(42, 56, 72)
+			end
+		end)
+		chip.MouseButton1Click:Connect(function()
+			stateProbeView.selectedFilter = chip.filterValue
+			applyStateProbeFilter()
+		end)
+		table.insert(stateProbeView.filterChips, chip)
+	end
+
+	spSearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+		stateProbeView.searchText = spSearchBox.Text or ""
+		applyStateProbeFilter()
+	end)
+
 	local spScroll = Instance.new("ScrollingFrame")
-	spScroll.Size               = UDim2.new(1, -16, 1, -84)
-	spScroll.Position           = UDim2.new(0, 8, 0, 40)
+	spScroll.Size               = UDim2.new(1, -16, 1, -140)
+	spScroll.Position           = UDim2.new(0, 8, 0, 102)
 	spScroll.BackgroundColor3   = Color3.fromRGB(12, 13, 18)
 	spScroll.BorderSizePixel    = 0
 	spScroll.ScrollBarThickness = 6
@@ -1754,8 +1842,8 @@ do
 	stateProbeContainer = spScroll
 
 	local spBtnBar = Instance.new("Frame")
-	spBtnBar.Size             = UDim2.new(1, -16, 0, 34)
-	spBtnBar.Position         = UDim2.new(0, 8, 1, -42)
+	spBtnBar.Size             = UDim2.new(0, 156, 0, 30)
+	spBtnBar.Position         = UDim2.new(0, 8, 1, -38)
 	spBtnBar.BackgroundColor3 = Color3.fromRGB(18, 24, 36)
 	spBtnBar.BorderSizePixel  = 0
 	spBtnBar.ZIndex           = 2
@@ -1764,10 +1852,10 @@ do
 	mkStroke(spBtnBar, Color3.fromRGB(60, 90, 80))
 
 	local spCopyAllBtn = Instance.new("TextButton")
-	spCopyAllBtn.Size             = UDim2.new(1, -10, 1, -10)
-	spCopyAllBtn.Position         = UDim2.new(0, 5, 0, 5)
+	spCopyAllBtn.Size             = UDim2.new(1, -8, 1, -8)
+	spCopyAllBtn.Position         = UDim2.new(0, 4, 0, 4)
 	spCopyAllBtn.BackgroundColor3 = Color3.fromRGB(48, 88, 150)
-	spCopyAllBtn.Text             = "Copy Visible Entries"
+	spCopyAllBtn.Text             = "Copy Visible"
 	spCopyAllBtn.TextColor3       = Theme.TextPrimary
 	spCopyAllBtn.Font             = Enum.Font.GothamBold
 	spCopyAllBtn.TextSize         = 10
@@ -1801,6 +1889,8 @@ do
 		end
 		applyStateProbeFilter()
 	end)
+
+	applyStateProbeFilter()
 end
 
 local spResizeGrip = Instance.new("TextButton")
